@@ -3,10 +3,7 @@ import { Eye, EyeOff, Lock, User, GraduationCap } from 'lucide-react';
 import { getCredentials } from '../utils/auth';
 
 function getSchoolName() {
-  try {
-    const s = JSON.parse(localStorage.getItem('settings') || '{}');
-    return (s && s.schoolName) ? s.schoolName : 'المدرسة';
-  } catch { return 'المدرسة'; }
+  return localStorage.getItem('school_name') || '';
 }
 
 interface Props {
@@ -66,7 +63,9 @@ export default function Login({ onLogin }: Props) {
             <GraduationCap size={36} color="white" />
           </div>
           <h1 style={{ color: 'white', fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>نظام إدارة الغياب والتأخير</h1>
-          <p style={{ color: '#a5b4fc', fontSize: '0.85rem', margin: '0.25rem 0 0' }}>{schoolName}</p>
+          {schoolName && (
+            <p style={{ color: '#fde68a', fontSize: '0.95rem', fontWeight: 600, margin: '0.35rem 0 0' }}>{schoolName}</p>
+          )}
         </div>
 
         {/* Card */}

@@ -24,6 +24,7 @@ export default function SettingsPage() {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     localStorage.setItem('principal_name', principalName.trim());
+    localStorage.setItem('school_name', form.schoolName.trim());
     updateSettings(form);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
