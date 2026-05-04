@@ -69,9 +69,9 @@ function buildHTML(
   @page { size: A4 portrait; margin: 1.5cm 2cm; }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: Arial, Tahoma, sans-serif; font-size: 10pt; direction: rtl; color: #000; }
-  .page-header { text-align: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 8px; }
-  .page-header img { height: 88px; display: block; margin: 0 auto 6px; }
-  .gov { font-size: 9pt; line-height: 1.8; }
+  .page-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #000; padding-bottom: 10px; margin-bottom: 8px; }
+  .page-header img { height: 88px; }
+  .gov { font-size: 9pt; line-height: 1.8; text-align: right; }
   .gov b { font-size: 10.5pt; }
   .title { text-align: center; font-size: 11pt; font-weight: bold; border: 1.5px solid #000; padding: 6px; margin: 6px 0; }
   .info-tbl { width: 100%; border-collapse: collapse; margin-bottom: 6px; }
@@ -89,13 +89,13 @@ function buildHTML(
 <body>
 
 <div class="page-header">
-  <img src="${origin}/ministry-logo.png" alt="شعار وزارة التعليم" onerror="this.style.display='none'" />
   <div class="gov">
     <div>المملكة العربية السعودية</div>
     <div>وزارة التعليم</div>
     <div>الإدارة العامة للتعليم بالمنطقة الشرقية</div>
     <div><b>${schoolName}</b></div>
   </div>
+  <img src="${origin}/ministry-logo.png" alt="شعار وزارة التعليم" onerror="this.style.display='none'" />
 </div>
 
 <div class="title">
