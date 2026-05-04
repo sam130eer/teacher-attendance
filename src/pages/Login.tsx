@@ -65,8 +65,8 @@ export default function Login({ onLogin }: Props) {
           }}>
             <GraduationCap size={36} color="white" />
           </div>
-          <h1 style={{ color: 'white', fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>{schoolName}</h1>
-          <p style={{ color: '#a5b4fc', fontSize: '0.85rem', margin: '0.25rem 0 0' }}>نظام متابعة الحضور والانضباط</p>
+          <h1 style={{ color: 'white', fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>نظام إدارة الغياب والتأخير</h1>
+          <p style={{ color: '#a5b4fc', fontSize: '0.85rem', margin: '0.25rem 0 0' }}>{schoolName}</p>
         </div>
 
         {/* Card */}
@@ -163,6 +163,9 @@ export default function Login({ onLogin }: Props) {
             </button>
           </form>
         </div>
+        <p style={{ color: '#a5b4fc', fontSize: '0.78rem', textAlign: 'center', marginTop: '1.5rem' }}>
+          © 2026 تصميم وبرمجة سمير معتوق الطريفي
+        </p>
       </div>
     </div>
   );
