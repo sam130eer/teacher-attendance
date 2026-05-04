@@ -5,8 +5,6 @@ import Badge from '../components/UI/Badge';
 import type { AbsenceType } from '../types';
 import { ABSENCE_TYPES } from '../types';
 import { calcAbsenceDays, calcTardinessMinutes, formatDate, formatTime, getCurrentMonthRange } from '../utils/helpers';
-import jsPDF from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
 
 type ReportType = 'absence' | 'tardiness' | 'summary';
@@ -46,49 +44,56 @@ export default function Reports() {
   });
 
   function exportPDF() {
-    const doc = new jsPDF({ orientation: 'landscape' });
-    doc.setFont('helvetica');
-
     const title = reportType === 'absence' ? 'تقرير الغياب' : reportType === 'tardiness' ? 'تقرير التأخير' : 'التقرير الشامل';
-    doc.text(`${title} - من ${dateFrom} إلى ${dateTo}`, 14, 15);
+
+    let thead = '';
+    let tbody = '';
 
     if (reportType === 'absence') {
-      autoTable(doc, {
-        startY: 25,
-        head: [['المعلم', 'نوع الغياب', 'من', 'إلى', 'الأيام', 'ملاحظات']],
-        body: filteredAbsences.map(a => [
-          teachers.find(t => t.id === a.teacherId)?.name || '',
-          ABSENCE_TYPES[a.type],
-          a.startDate,
-          a.endDate,
-          calcAbsenceDays(a),
-          a.notes,
-        ]),
-      });
+      thead = '<tr><th>#</th><th>المعلم</th><th>نوع الغياب</th><th>من</th><th>إلى</th><th>الأيام</th><th>ملاحظات</th></tr>';
+      tbody = filteredAbsences.map((a, i) => `<tr>
+        <td>${i + 1}</td>
+        <td>${teachers.find(t => t.id === a.teacherId)?.name || ''}</td>
+        <td>${ABSENCE_TYPES[a.type]}</td>
+        <td>${a.startDate}</td><td>${a.endDate}</td>
+        <td>${calcAbsenceDays(a)} يوم</td>
+        <td>${a.notes || ''}</td>
+      </tr>`).join('');
     } else if (reportType === 'tardiness') {
-      autoTable(doc, {
-        startY: 25,
-        head: [['المعلم', 'التاريخ', 'الوقت المقرر', 'وقت الحضور', 'الدقائق', 'ملاحظات']],
-        body: filteredTardiness.map(t => [
-          teachers.find(x => x.id === t.teacherId)?.name || '',
-          t.date,
-          t.scheduledTime,
-          t.actualTime,
-          calcTardinessMinutes(t),
-          t.notes,
-        ]),
-      });
+      thead = '<tr><th>#</th><th>المعلم</th><th>التاريخ</th><th>الوقت المقرر</th><th>وقت الحضور</th><th>الدقائق</th><th>ملاحظات</th></tr>';
+      tbody = filteredTardiness.map((t, i) => `<tr>
+        <td>${i + 1}</td>
+        <td>${teachers.find(x => x.id === t.teacherId)?.name || ''}</td>
+        <td>${t.date}</td><td>${t.scheduledTime}</td><td>${t.actualTime}</td>
+        <td>${calcTardinessMinutes(t)} دقيقة</td>
+        <td>${t.notes || ''}</td>
+      </tr>`).join('');
     } else {
-      autoTable(doc, {
-        startY: 25,
-        head: [['المعلم', 'التخصص', 'أيام الغياب', 'مرات الغياب', 'لم يُضف في فارس', 'مرات التأخير', 'إجمالي دقائق التأخير']],
-        body: summaryData.map(s => [
-          s.teacher.name, s.teacher.specialty, s.absDays, s.absTimes, s.notInFares, s.tarTimes, s.totalMins,
-        ]),
-      });
+      thead = '<tr><th>المعلم</th><th>التخصص</th><th>أيام الغياب</th><th>مرات الغياب</th><th>بدون عذر</th><th>مرات التأخير</th><th>دقائق التأخير</th></tr>';
+      tbody = summaryData.map(s => `<tr>
+        <td>${s.teacher.name}</td><td>${s.teacher.specialty}</td>
+        <td>${s.absDays}</td><td>${s.absTimes}</td>
+        <td>${s.notInFares}</td><td>${s.tarTimes}</td><td>${s.totalMins}</td>
+      </tr>`).join('');
     }
 
-    doc.save(`report-${reportType}-${dateFrom}-${dateTo}.pdf`);
+    const html = `<!DOCTYPE html><html dir="rtl" lang="ar"><head><meta charset="UTF-8">
+    <style>
+      body { font-family: Arial, Tahoma, sans-serif; font-size: 10pt; direction: rtl; }
+      h2 { text-align: center; margin-bottom: 8px; }
+      p { text-align: center; color: #555; margin-bottom: 12px; }
+      table { width: 100%; border-collapse: collapse; }
+      th, td { border: 1px solid #000; padding: 5px 8px; text-align: center; }
+      th { background: #ddd; font-weight: bold; }
+      @media print { @page { size: A4 landscape; margin: 1.5cm; } }
+    </style></head><body>
+    <h2>${title}</h2>
+    <p>من ${dateFrom} إلى ${dateTo}</p>
+    <table><thead>${thead}</thead><tbody>${tbody}</tbody></table>
+    </body></html>`;
+
+    const win = window.open('', '_blank', 'width=900,height=600');
+    if (win) { win.document.write(html); win.document.close(); win.focus(); setTimeout(() => win.print(), 400); }
   }
 
   function exportExcel() {
