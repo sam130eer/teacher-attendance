@@ -250,7 +250,7 @@ export default function Absences() {
                 className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 ${errors.teacherId ? 'border-red-400' : 'border-slate-300'}`}
               >
                 <option value="">-- اختر المعلم --</option>
-                {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                {[...teachers].sort((a, b) => a.name.localeCompare(b.name, 'ar')).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
               {errors.teacherId && <p className="text-xs text-red-500 mt-1">{errors.teacherId}</p>}
             </div>
