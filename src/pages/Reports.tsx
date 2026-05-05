@@ -50,6 +50,7 @@ export default function Reports() {
     let tbody = '';
 
     if (reportType === 'absence') {
+      const totalDays = filteredAbsences.reduce((s, a) => s + calcAbsenceDays(a), 0);
       thead = '<tr><th>#</th><th>المعلم</th><th>نوع الغياب</th><th>من</th><th>إلى</th><th>الأيام</th><th>ملاحظات</th></tr>';
       tbody = filteredAbsences.map((a, i) => `<tr>
         <td>${i + 1}</td>
@@ -58,8 +59,13 @@ export default function Reports() {
         <td>${a.startDate}</td><td>${a.endDate}</td>
         <td>${calcAbsenceDays(a)} يوم</td>
         <td>${a.notes || ''}</td>
-      </tr>`).join('');
+      </tr>`).join('') + `<tr style="background:#f0f0f0;font-weight:bold">
+        <td colspan="5" style="text-align:right;padding-right:12px">الإجمالي</td>
+        <td>${totalDays} يوم</td>
+        <td></td>
+      </tr>`;
     } else if (reportType === 'tardiness') {
+      const totalMins = filteredTardiness.reduce((s, t) => s + calcTardinessMinutes(t), 0);
       thead = '<tr><th>#</th><th>المعلم</th><th>التاريخ</th><th>الوقت المقرر</th><th>وقت الحضور</th><th>الدقائق</th><th>ملاحظات</th></tr>';
       tbody = filteredTardiness.map((t, i) => `<tr>
         <td>${i + 1}</td>
@@ -67,7 +73,11 @@ export default function Reports() {
         <td>${t.date}</td><td>${t.scheduledTime}</td><td>${t.actualTime}</td>
         <td>${calcTardinessMinutes(t)} دقيقة</td>
         <td>${t.notes || ''}</td>
-      </tr>`).join('');
+      </tr>`).join('') + `<tr style="background:#f0f0f0;font-weight:bold">
+        <td colspan="5" style="text-align:right;padding-right:12px">الإجمالي</td>
+        <td>${totalMins} دقيقة</td>
+        <td></td>
+      </tr>`;
     } else {
       thead = '<tr><th>المعلم</th><th>التخصص</th><th>أيام الغياب</th><th>مرات الغياب</th><th>بدون عذر</th><th>مرات التأخير</th><th>دقائق التأخير</th></tr>';
       tbody = summaryData.map(s => `<tr>
