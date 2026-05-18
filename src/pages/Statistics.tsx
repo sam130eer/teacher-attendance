@@ -13,6 +13,7 @@ const TYPE_BADGE: Record<AbsenceType, string> = {
   bereavement:    'bg-slate-200 text-slate-600',
   patient_escort: 'bg-purple-100 text-purple-700',
   marriage:       'bg-pink-100 text-pink-700',
+  sports:         'bg-emerald-100 text-emerald-700',
   unspecified:    'bg-slate-100 text-slate-500',
 };
 import {
