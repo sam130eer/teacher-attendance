@@ -256,7 +256,7 @@ export default function Reports() {
                 </thead>
                 <tbody className="divide-y divide-slate-50">
                   {filteredAbsences.map((a, i) => (
-                    <tr key={a.id} className="hover:bg-slate-50">
+                    <tr key={a.id} className="odd:bg-white even:bg-slate-50/70 hover:bg-indigo-50/50 transition-colors">
                       <td className="p-3 text-slate-400">{i + 1}</td>
                       <td className="p-3 font-medium">{teachers.find(t => t.id === a.teacherId)?.name || '—'}</td>
                       <td className="p-3"><Badge type={a.type} /></td>
@@ -300,7 +300,7 @@ export default function Reports() {
                   {filteredTardiness.map((t, i) => {
                     const mins = calcTardinessMinutes(t);
                     return (
-                      <tr key={t.id} className="hover:bg-slate-50">
+                      <tr key={t.id} className="odd:bg-white even:bg-slate-50/70 hover:bg-indigo-50/50 transition-colors">
                         <td className="p-3 text-slate-400">{i + 1}</td>
                         <td className="p-3 font-medium">{teachers.find(x => x.id === t.teacherId)?.name || '—'}</td>
                         <td className="p-3 text-slate-600 text-base">{formatDate(t.date)}</td>
@@ -344,7 +344,7 @@ export default function Reports() {
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {summaryData.map(s => (
-                  <tr key={s.teacher.id} className="hover:bg-slate-50">
+                  <tr key={s.teacher.id} className="odd:bg-white even:bg-slate-50/70 hover:bg-indigo-50/50 transition-colors">
                     <td className="p-3 font-medium">{s.teacher.name}</td>
                     <td className="p-3 text-slate-600 text-base">{s.teacher.specialty}</td>
                     <td className="p-3">

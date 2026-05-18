@@ -165,7 +165,7 @@ export default function Tardiness() {
                   const teacher = teachers.find(x => x.id === t.teacherId);
                   const mins = calcTardinessMinutes(t);
                   return (
-                    <tr key={t.id} className="hover:bg-slate-50">
+                    <tr key={t.id} className="odd:bg-white even:bg-slate-50/70 hover:bg-indigo-50/50 transition-colors">
                       <td className="p-3 font-medium">{teacher?.name || '—'}</td>
                       <td className="p-3 text-slate-600 text-base">{formatDate(t.date)}</td>
                       <td className="p-3 text-slate-600 text-base">
