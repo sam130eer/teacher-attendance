@@ -68,10 +68,23 @@ export default function Absences() {
 
   function validate() {
     const e: Record<string, string> = {};
-    if (!form.teacherId)                    e.teacherId = 'اختر المعلم';
-    if (!form.startDate)                    e.startDate = 'تاريخ البداية مطلوب';
-    if (!form.endDate)                      e.endDate   = 'تاريخ النهاية مطلوب';
-    if (form.endDate < form.startDate)      e.endDate   = 'تاريخ النهاية يجب أن يكون بعد البداية';
+    if (!form.teacherId)               e.teacherId = 'اختر المعلم';
+    if (!form.startDate)               e.startDate = 'تاريخ البداية مطلوب';
+    if (!form.endDate)                 e.endDate   = 'تاريخ النهاية مطلوب';
+    if (form.endDate < form.startDate) e.endDate   = 'تاريخ النهاية يجب أن يكون بعد البداية';
+
+    if (form.teacherId && form.startDate && form.endDate && form.endDate >= form.startDate) {
+      const overlap = absences.find(a =>
+        a.teacherId === form.teacherId &&
+        a.id !== editing?.id &&
+        a.startDate <= form.endDate &&
+        a.endDate   >= form.startDate
+      );
+      if (overlap) {
+        e.startDate = `يتعارض مع إجازة موجودة من ${formatDate(overlap.startDate)} إلى ${formatDate(overlap.endDate)}`;
+      }
+    }
+
     return e;
   }
 
