@@ -197,7 +197,7 @@ export default function Absences() {
                 {filtered.map(a => {
                   const teacher = teachers.find(t => t.id === a.teacherId);
                   return (
-                    <tr key={a.id} className="odd:bg-white even:bg-slate-50/70 hover:bg-indigo-50/50 transition-colors">
+                    <tr key={a.id} className="odd:bg-white even:bg-blue-50 hover:bg-indigo-100/60 transition-colors">
                       <td className="p-3 font-medium">{teacher?.name || '—'}</td>
                       <td className="p-3"><Badge type={a.type} /></td>
                       <td className="p-3">
