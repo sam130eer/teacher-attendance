@@ -130,7 +130,7 @@ export default function Teachers() {
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-          {filtered.map((t, idx) => {
+          {filtered.map((t) => {
             const absCount = absences.filter(a => a.teacherId === t.id).length;
             const tarCount = tardiness.filter(x => x.teacherId === t.id).length;
             const color = avatarColor(t.name);
