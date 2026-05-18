@@ -180,18 +180,18 @@ export default function Teachers() {
 
                   {/* Stats */}
                   <div className="flex gap-3 pt-3 border-t border-slate-100">
-                    <div className="flex-1 flex items-center gap-2 bg-red-50 rounded-xl px-3 py-2">
-                      <CalendarX size={13} className="text-red-500 shrink-0" />
+                    <div className={`flex-1 flex items-center gap-2 rounded-xl px-3 py-2 ${absCount === 0 ? 'bg-green-50' : 'bg-red-50'}`}>
+                      <CalendarX size={13} className={`shrink-0 ${absCount === 0 ? 'text-green-500' : 'text-red-500'}`} />
                       <div>
-                        <p className="text-xs text-red-400">غياب</p>
-                        <p className="text-sm font-bold text-red-600">{absCount}</p>
+                        <p className={`text-xs ${absCount === 0 ? 'text-green-400' : 'text-red-400'}`}>غياب</p>
+                        <p className={`text-sm font-bold ${absCount === 0 ? 'text-green-600' : 'text-red-600'}`}>{absCount}</p>
                       </div>
                     </div>
-                    <div className="flex-1 flex items-center gap-2 bg-amber-50 rounded-xl px-3 py-2">
-                      <Clock size={13} className="text-amber-500 shrink-0" />
+                    <div className={`flex-1 flex items-center gap-2 rounded-xl px-3 py-2 ${tarCount === 0 ? 'bg-green-50' : 'bg-amber-50'}`}>
+                      <Clock size={13} className={`shrink-0 ${tarCount === 0 ? 'text-green-500' : 'text-amber-500'}`} />
                       <div>
-                        <p className="text-xs text-amber-400">تأخير</p>
-                        <p className="text-sm font-bold text-amber-600">{tarCount}</p>
+                        <p className={`text-xs ${tarCount === 0 ? 'text-green-400' : 'text-amber-400'}`}>تأخير</p>
+                        <p className={`text-sm font-bold ${tarCount === 0 ? 'text-green-600' : 'text-amber-600'}`}>{tarCount}</p>
                       </div>
                     </div>
                   </div>
