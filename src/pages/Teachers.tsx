@@ -4,6 +4,7 @@ import { useApp } from '../context/AppContext';
 import Modal from '../components/UI/Modal';
 import BulkImportModal from '../components/UI/BulkImportModal';
 import type { Teacher } from '../types';
+import { calcTardinessMinutes } from '../utils/helpers';
 
 const empty = { name: '', nationalId: '', specialty: '' };
 
@@ -132,7 +133,9 @@ export default function Teachers() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
           {filtered.map((t) => {
             const absCount = absences.filter(a => a.teacherId === t.id).length;
-            const tarCount = tardiness.filter(x => x.teacherId === t.id).length;
+            const tarList  = tardiness.filter(x => x.teacherId === t.id);
+            const tarCount = tarList.length;
+            const tarMins  = tarList.reduce((s, x) => s + calcTardinessMinutes(x), 0);
             const color = avatarColor(t.name);
             return (
               <div key={t.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
@@ -191,7 +194,10 @@ export default function Teachers() {
                       <Clock size={13} className={`shrink-0 ${tarCount === 0 ? 'text-green-500' : 'text-amber-500'}`} />
                       <div>
                         <p className={`text-xs ${tarCount === 0 ? 'text-green-400' : 'text-amber-400'}`}>تأخير</p>
-                        <p className={`text-sm font-bold ${tarCount === 0 ? 'text-green-600' : 'text-amber-600'}`}>{tarCount}</p>
+                        <p className={`text-sm font-bold ${tarCount === 0 ? 'text-green-600' : 'text-amber-600'}`}>
+                          {tarCount} مرة
+                          {tarMins > 0 && <span className="text-xs font-normal me-1"> ({tarMins} د)</span>}
+                        </p>
                       </div>
                     </div>
                   </div>
