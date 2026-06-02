@@ -13,8 +13,10 @@ const TYPE_BADGE: Record<AbsenceType, string> = {
   bereavement:    'bg-slate-200 text-slate-600',
   patient_escort: 'bg-purple-100 text-purple-700',
   marriage:       'bg-pink-100 text-pink-700',
-  sports:         'bg-emerald-100 text-emerald-700',
-  unspecified:    'bg-slate-100 text-slate-500',
+  sports:          'bg-emerald-100 text-emerald-700',
+  training:        'bg-cyan-100 text-cyan-700',
+  official_mission:'bg-violet-100 text-violet-700',
+  unspecified:     'bg-slate-100 text-slate-500',
 };
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer,

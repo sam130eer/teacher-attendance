@@ -6,7 +6,7 @@ export interface Teacher {
   createdAt: string;
 }
 
-export type AbsenceType = 'sick' | 'emergency' | 'newborn' | 'bereavement' | 'patient_escort' | 'marriage' | 'sports' | 'unspecified';
+export type AbsenceType = 'sick' | 'emergency' | 'newborn' | 'bereavement' | 'patient_escort' | 'marriage' | 'sports' | 'training' | 'official_mission' | 'unspecified';
 
 export interface Absence {
   id: string;
@@ -45,8 +45,10 @@ export const ABSENCE_TYPES: Record<AbsenceType, string> = {
   bereavement:    'وفاة قريب',
   patient_escort: 'مرافقة مريض',
   marriage:       'زواج',
-  sports:         'مشاركة رياضية',
-  unspecified:    'غير محددة',
+  sports:          'مشاركة رياضية',
+  training:        'دورة تدريبية',
+  official_mission:'مهمة عمل رسمية',
+  unspecified:     'غير محددة',
 };
 
 export const ABSENCE_COLORS: Record<AbsenceType, string> = {
@@ -56,6 +58,8 @@ export const ABSENCE_COLORS: Record<AbsenceType, string> = {
   bereavement:    '#6b7280',
   patient_escort: '#8b5cf6',
   marriage:       '#ec4899',
-  sports:         '#059669',
-  unspecified:    '#94a3b8',
+  sports:          '#059669',
+  training:        '#0891b2',
+  official_mission:'#7c3aed',
+  unspecified:     '#94a3b8',
 };
