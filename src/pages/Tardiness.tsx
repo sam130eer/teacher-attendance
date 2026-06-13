@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, Filter, Clock, FileUp, Printer } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, Filter, Clock, FileUp, Printer, MessageCircle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Modal from '../components/UI/Modal';
 import BulkImportRecordsModal from '../components/UI/BulkImportRecordsModal';
@@ -74,6 +74,16 @@ export default function Tardiness() {
   function minBadge(mins: number) {
     const cls = mins >= 60 ? 'bg-red-100 text-red-700' : mins >= 30 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700';
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>+{mins} دقيقة</span>;
+  }
+
+  function sendWhatsApp(phone: string, msg: string) {
+    const num = phone.replace(/\D/g, '').replace(/^0/, '966');
+    window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
+  }
+
+  function whatsAppSingle(teacher: { name: string; phone: string }, t: TardinessType, mins: number, totalMins: number, times: number) {
+    const msg = `معلمنا الفاضل ${teacher.name} حفظه الله،\nنود إشعاركم بأنه تم تسجيل تأخيركم بتاريخ ${t.date} لمدة (${mins}) دقيقة.\n\nإجمالي التأخير المسجل عليكم حتى الآن:\n• عدد المرات: ${times} مرة\n• إجمالي الدقائق: ${totalMins} دقيقة\n\nنرجو الالتزام بوقت الحضور المقرر، وفقكم الله.`;
+    sendWhatsApp(teacher.phone, msg);
   }
 
   return (
@@ -164,6 +174,8 @@ export default function Tardiness() {
                 {filtered.map(t => {
                   const teacher = teachers.find(x => x.id === t.teacherId);
                   const mins = calcTardinessMinutes(t);
+                  const teacherTardiness = tardiness.filter(x => x.teacherId === t.teacherId);
+                  const totalMins = teacherTardiness.reduce((s, x) => s + calcTardinessMinutes(x), 0);
                   return (
                     <tr key={t.id} className="odd:bg-white even:bg-blue-50 hover:bg-indigo-100/60 transition-colors">
                       <td className="p-3 font-medium">{teacher?.name || '—'}</td>
@@ -178,6 +190,15 @@ export default function Tardiness() {
                       <td className="p-3 text-slate-500 max-w-40 truncate">{t.notes || '—'}</td>
                       <td className="p-3">
                         <div className="flex gap-1">
+                          {teacher?.phone && (
+                            <button
+                              onClick={() => whatsAppSingle(teacher, t, mins, totalMins, teacherTardiness.length)}
+                              className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg"
+                              title="إرسال رسالة واتساب"
+                            >
+                              <MessageCircle size={14} />
+                            </button>
+                          )}
                           <button onClick={() => openEdit(t)} className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg">
                             <Edit2 size={14} />
                           </button>

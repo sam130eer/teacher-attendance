@@ -15,7 +15,7 @@ export const DEFAULT_SETTINGS: AppSettings = {
 
 // DB row → app type mappers
 function mapTeacher(r: Record<string, unknown>): Teacher {
-  return { id: r.id as string, name: r.name as string, nationalId: r.national_id as string, specialty: r.specialty as string, createdAt: r.created_at as string };
+  return { id: r.id as string, name: r.name as string, nationalId: r.national_id as string, specialty: r.specialty as string, phone: (r.phone as string) ?? '', createdAt: r.created_at as string };
 }
 function mapAbsence(r: Record<string, unknown>): Absence {
   return { id: r.id as string, teacherId: r.teacher_id as string, type: r.type as Absence['type'], startDate: r.start_date as string, endDate: r.end_date as string, notes: (r.notes as string) ?? '', addedInFares: r.added_in_fares as boolean, createdAt: r.created_at as string };
@@ -98,16 +98,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setTeachers(prev => [...prev, teacher]);
     supabase.from('teachers').insert({
       id: teacher.id, name: teacher.name, national_id: teacher.nationalId,
-      specialty: teacher.specialty, created_at: teacher.createdAt,
+      specialty: teacher.specialty, phone: teacher.phone, created_at: teacher.createdAt,
     }).then(({ error }) => { if (error) console.error(error); });
   }, []);
 
   const updateTeacher = useCallback((id: string, t: Partial<Teacher>) => {
     setTeachers(prev => prev.map(x => x.id === id ? { ...x, ...t } : x));
     const u: Record<string, unknown> = {};
-    if (t.name      !== undefined) u.name        = t.name;
+    if (t.name       !== undefined) u.name        = t.name;
     if (t.nationalId !== undefined) u.national_id = t.nationalId;
     if (t.specialty  !== undefined) u.specialty   = t.specialty;
+    if (t.phone      !== undefined) u.phone       = t.phone;
     supabase.from('teachers').update(u).eq('id', id)
       .then(({ error }) => { if (error) console.error(error); });
   }, []);

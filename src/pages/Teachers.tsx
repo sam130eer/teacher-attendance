@@ -1,12 +1,12 @@
 import { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, BookOpen, CreditCard, Users, ClipboardList, CalendarX, Clock } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, BookOpen, CreditCard, Users, ClipboardList, CalendarX, Clock, Phone } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Modal from '../components/UI/Modal';
 import BulkImportModal from '../components/UI/BulkImportModal';
 import type { Teacher } from '../types';
 import { calcTardinessMinutes } from '../utils/helpers';
 
-const empty = { name: '', nationalId: '', specialty: '' };
+const empty = { name: '', nationalId: '', specialty: '', phone: '' };
 
 const AVATAR_COLORS = [
   'from-blue-500 to-indigo-600',
@@ -46,7 +46,7 @@ export default function Teachers() {
 
   function openEdit(t: Teacher) {
     setEditing(t);
-    setForm({ name: t.name, nationalId: t.nationalId, specialty: t.specialty });
+    setForm({ name: t.name, nationalId: t.nationalId, specialty: t.specialty, phone: t.phone ?? '' });
     setErrors({});
     setShowModal(true);
   }
@@ -179,6 +179,12 @@ export default function Teachers() {
                       <CreditCard size={13} className="text-slate-400 shrink-0" />
                       <span className="font-mono tracking-wide">{t.nationalId}</span>
                     </div>
+                    {t.phone && (
+                      <div className="flex items-center gap-2 text-sm text-slate-500">
+                        <Phone size={13} className="text-slate-400 shrink-0" />
+                        <span className="font-mono">{t.phone}</span>
+                      </div>
+                    )}
                   </div>
 
                   {/* Stats */}
@@ -232,6 +238,13 @@ export default function Teachers() {
                 onChange={e => setForm(f => ({ ...f, specialty: e.target.value }))}
                 className={`w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.specialty ? 'border-red-400' : 'border-slate-300'}`} />
               {errors.specialty && <p className="text-xs text-red-500 mt-1">{errors.specialty}</p>}
+            </div>
+            <div>
+              <label className="block text-base font-medium text-slate-700 mb-1">رقم الجوال (واتساب)</label>
+              <input type="tel" value={form.phone} placeholder="05xxxxxxxx"
+                onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
+                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
+              <p className="text-xs text-slate-400 mt-1">يُستخدم لإرسال رسائل واتساب للمعلم</p>
             </div>
             <div className="flex gap-3 pt-2">
               <button type="submit" className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-base font-medium hover:bg-indigo-700">

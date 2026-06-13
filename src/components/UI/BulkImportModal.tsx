@@ -88,6 +88,7 @@ export default function BulkImportModal({ existingTeachers, onImport, onClose }:
       name: r.name,
       nationalId: r.nationalId,
       specialty: r.specialty,
+      phone: '',
     })));
     setImportedCount(validRows.length);
     setImportDone(true);
