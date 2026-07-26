@@ -143,11 +143,9 @@ function buildHTML(
 interface Props { onClose: () => void }
 
 export default function AccountabilityModal({ onClose }: Props) {
-  const { teachers, tardiness, settings } = useApp();
+  const { teachers, tardiness, settings, updateSettings } = useApp();
   const [teacherId, setTeacherId]       = useState('');
-  const [principalName, setPrincipalName] = useState(
-    () => localStorage.getItem('principal_name') || ''
-  );
+  const principalName = settings.principalName || '';
 
   const sorted  = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
   const teacher = teachers.find(t => t.id === teacherId);
@@ -156,11 +154,6 @@ export default function AccountabilityModal({ onClose }: Props) {
   const dates   = teacher ? getStageDates(list) : new Map<number, string>();
   const reached = STAGES.filter(s => dates.has(s.threshold));
   const current = reached[reached.length - 1];
-
-  function savePrincipal(v: string) {
-    setPrincipalName(v);
-    localStorage.setItem('principal_name', v);
-  }
 
   function handlePrint() {
     if (!teacher) return;
@@ -222,7 +215,7 @@ export default function AccountabilityModal({ onClose }: Props) {
           <input
             type="text"
             value={principalName}
-            onChange={e => savePrincipal(e.target.value)}
+            onChange={e => updateSettings({ principalName: e.target.value })}
             placeholder="أدخل اسم المدير"
             className="w-full border border-slate-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
