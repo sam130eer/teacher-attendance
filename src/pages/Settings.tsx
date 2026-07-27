@@ -1,5 +1,5 @@
 import { useState, useRef } from 'react';
-import { Settings, Clock, School, Save, CheckCircle, KeyRound, Eye, EyeOff, Download, Upload, UserCog, AlertTriangle, RotateCcw } from 'lucide-react';
+import { Settings, Clock, School, Save, CheckCircle, KeyRound, Eye, EyeOff, Download, Upload, UserCog, AlertTriangle, RotateCcw, CalendarDays } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import { getCredentials, saveCredentials } from '../utils/auth';
 import { supabase } from '../lib/supabase';
@@ -30,6 +30,11 @@ export default function SettingsPage() {
   const [importedData, setImportedData] = useState<BackupData | null>(null);
   const [restoring, setRestoring]       = useState(false);
   const [confirmRestore, setConfirmRestore] = useState(false);
+
+  const [confirmNewYear, setConfirmNewYear] = useState(false);
+  const [newYearBusy, setNewYearBusy]       = useState(false);
+  const [newYearMsg, setNewYearMsg]         = useState('');
+
   const fileRef = useRef<HTMLInputElement>(null);
 
   function handleSubmit(e: React.FormEvent) {
@@ -154,6 +159,38 @@ export default function SettingsPage() {
       setBackupError('فشل الاسترجاع: ' + msg);
     } finally {
       setRestoring(false);
+    }
+  }
+
+  async function handleNewYear() {
+    setNewYearBusy(true);
+    setNewYearMsg('');
+    try {
+      // 1. Auto-download backup
+      const year = new Date().getFullYear();
+      const data = { exportedAt: new Date().toISOString(), teachers, absences, tardiness };
+      const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `نسخة-احتياطية-${year}.json`;
+      a.click();
+      URL.revokeObjectURL(url);
+
+      // 2. Delete absences and tardiness (keep teachers)
+      const { error: e1 } = await supabase.from('tardiness').delete().neq('id', '');
+      if (e1) throw e1;
+      const { error: e2 } = await supabase.from('absences').delete().neq('id', '');
+      if (e2) throw e2;
+
+      setNewYearMsg('تم بنجاح — تم تنزيل النسخة الاحتياطية وتصفير البيانات');
+      setConfirmNewYear(false);
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setNewYearMsg('خطأ: ' + msg);
+    } finally {
+      setNewYearBusy(false);
     }
   }
 
@@ -300,6 +337,58 @@ export default function SettingsPage() {
             <p className="text-sm text-red-600 bg-red-50 rounded-lg px-3 py-2">{backupError}</p>
           )}
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4">
+        <h2 className="font-semibold text-slate-700 flex items-center gap-2">
+          <CalendarDays size={16} className="text-slate-400" />
+          بداية سنة دراسية جديدة
+        </h2>
+        <p className="text-sm text-slate-500">
+          يحذف جميع سجلات الغياب والتأخير ويبقي بيانات المعلمين. يُنزَّل ملف احتياطي تلقائياً قبل الحذف.
+        </p>
+
+        {!confirmNewYear ? (
+          <button
+            onClick={() => { setConfirmNewYear(true); setNewYearMsg(''); }}
+            className="flex items-center gap-2 border border-amber-300 text-amber-700 bg-amber-50 px-5 py-2.5 rounded-xl text-base font-medium hover:bg-amber-100 transition-colors"
+          >
+            <CalendarDays size={15} />
+            بدء سنة دراسية جديدة
+          </button>
+        ) : (
+          <div className="bg-red-50 border border-red-200 rounded-xl p-4 space-y-3">
+            <div className="flex items-start gap-2 text-red-800 text-sm">
+              <AlertTriangle size={15} className="shrink-0 mt-0.5" />
+              <span>
+                سيتم <strong>حذف جميع بيانات الغياب والتأخير نهائياً</strong> لهذه السنة.
+                سيُنزَّل ملف احتياطي تلقائياً قبل الحذف — احتفظ به في مكان آمن.
+              </span>
+            </div>
+            <div className="flex gap-3 flex-wrap">
+              <button
+                onClick={handleNewYear}
+                disabled={newYearBusy}
+                className="flex items-center gap-2 bg-red-600 text-white px-5 py-2.5 rounded-xl text-base font-medium hover:bg-red-700 disabled:opacity-50 transition-colors"
+              >
+                <RotateCcw size={15} className={newYearBusy ? 'animate-spin' : ''} />
+                {newYearBusy ? 'جارٍ التنفيذ...' : 'نعم، تنزيل نسخة احتياطية وبدء سنة جديدة'}
+              </button>
+              <button
+                onClick={() => setConfirmNewYear(false)}
+                className="border border-slate-200 px-5 py-2.5 rounded-xl text-base font-medium hover:bg-slate-50 transition-colors"
+              >
+                إلغاء
+              </button>
+            </div>
+          </div>
+        )}
+
+        {newYearMsg && (
+          <p className={`text-sm rounded-lg px-3 py-2 ${newYearMsg.startsWith('خطأ') ? 'text-red-600 bg-red-50' : 'text-green-700 bg-green-50'}`}>
+            {newYearMsg}
+          </p>
+        )}
       </div>
 
       <form onSubmit={handleAuthSubmit} className="space-y-5">
