@@ -6,11 +6,13 @@ import { supabase } from '../lib/supabase';
 export interface AppSettings {
   defaultScheduledTime: string;
   schoolName: string;
+  principalName: string;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   defaultScheduledTime: '07:30',
   schoolName: 'المدرسة',
+  principalName: '',
 };
 
 // DB row → app type mappers
@@ -73,7 +75,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (a.data)    setAbsences(a.data.map(mapAbsence));
         if (tard.data) setTardiness(tard.data.map(mapTardiness));
         if (n.data)    setNotifications(n.data.map(mapNotification));
-        if (s.data)    setSettings({ schoolName: s.data.school_name, defaultScheduledTime: s.data.default_scheduled_time });
+        if (s.data)    setSettings({ schoolName: s.data.school_name, defaultScheduledTime: s.data.default_scheduled_time, principalName: (s.data.principal_name as string) ?? '' });
       } catch (err) {
         console.error('Supabase load error:', err);
       } finally {
@@ -201,8 +203,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const updateSettings = useCallback((s: Partial<AppSettings>) => {
     setSettings(prev => ({ ...prev, ...s }));
     const u: Record<string, unknown> = {};
-    if (s.schoolName           !== undefined) u.school_name           = s.schoolName;
+    if (s.schoolName           !== undefined) u.school_name            = s.schoolName;
     if (s.defaultScheduledTime !== undefined) u.default_scheduled_time = s.defaultScheduledTime;
+    if (s.principalName        !== undefined) u.principal_name         = s.principalName;
     supabase.from('app_settings').update(u).eq('id', 1)
       .then(({ error }) => { if (error) console.error(error); });
   }, []);
