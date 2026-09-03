@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import type { Teacher, Absence, Tardiness, Notification } from '../types';
+import type { Teacher, Absence, Tardiness, EarlyDeparture, Notification } from '../types';
 import { generateId } from '../utils/helpers';
 import { supabase } from '../lib/supabase';
 
@@ -25,6 +25,9 @@ function mapAbsence(r: Record<string, unknown>): Absence {
 function mapTardiness(r: Record<string, unknown>): Tardiness {
   return { id: r.id as string, teacherId: r.teacher_id as string, date: r.date as string, scheduledTime: r.scheduled_time as string, actualTime: r.actual_time as string, notes: (r.notes as string) ?? '', createdAt: r.created_at as string };
 }
+function mapEarlyDeparture(r: Record<string, unknown>): EarlyDeparture {
+  return { id: r.id as string, teacherId: r.teacher_id as string, date: r.date as string, scheduledEndTime: r.scheduled_end_time as string, actualDepartureTime: r.actual_departure_time as string, notes: (r.notes as string) ?? '', createdAt: r.created_at as string };
+}
 function mapNotification(r: Record<string, unknown>): Notification {
   return { id: r.id as string, teacherId: r.teacher_id as string, type: r.type as Notification['type'], message: r.message as string, isRead: r.is_read as boolean, createdAt: r.created_at as string };
 }
@@ -33,6 +36,7 @@ interface AppContextType {
   teachers: Teacher[];
   absences: Absence[];
   tardiness: Tardiness[];
+  earlyDepartures: EarlyDeparture[];
   notifications: Notification[];
   settings: AppSettings;
   loading: boolean;
@@ -45,6 +49,9 @@ interface AppContextType {
   addTardiness: (t: Omit<Tardiness, 'id' | 'createdAt'>) => void;
   updateTardiness: (id: string, t: Partial<Tardiness>) => void;
   deleteTardiness: (id: string) => void;
+  addEarlyDeparture: (e: Omit<EarlyDeparture, 'id' | 'createdAt'>) => void;
+  updateEarlyDeparture: (id: string, e: Partial<EarlyDeparture>) => void;
+  deleteEarlyDeparture: (id: string) => void;
   markNotificationRead: (id: string) => void;
   updateSettings: (s: Partial<AppSettings>) => void;
   unreadCount: number;
@@ -53,27 +60,30 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | null>(null);
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
-  const [teachers,      setTeachers]      = useState<Teacher[]>([]);
-  const [absences,      setAbsences]      = useState<Absence[]>([]);
-  const [tardiness,     setTardiness]     = useState<Tardiness[]>([]);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [settings,      setSettings]      = useState<AppSettings>(DEFAULT_SETTINGS);
-  const [loading,       setLoading]       = useState(true);
+  const [teachers,        setTeachers]        = useState<Teacher[]>([]);
+  const [absences,        setAbsences]        = useState<Absence[]>([]);
+  const [tardiness,       setTardiness]       = useState<Tardiness[]>([]);
+  const [earlyDepartures, setEarlyDepartures] = useState<EarlyDeparture[]>([]);
+  const [notifications,   setNotifications]   = useState<Notification[]>([]);
+  const [settings,        setSettings]        = useState<AppSettings>(DEFAULT_SETTINGS);
+  const [loading,         setLoading]         = useState(true);
 
   // Initial load from Supabase
   useEffect(() => {
     async function loadAll() {
       try {
-        const [t, a, tard, n, s] = await Promise.all([
+        const [t, a, tard, ed, n, s] = await Promise.all([
           supabase.from('teachers').select('*'),
           supabase.from('absences').select('*'),
           supabase.from('tardiness').select('*'),
+          supabase.from('early_departures').select('*'),
           supabase.from('notifications').select('*').order('created_at', { ascending: false }).limit(50),
           supabase.from('app_settings').select('*').single(),
         ]);
         if (t.data)    setTeachers(t.data.map(mapTeacher));
         if (a.data)    setAbsences(a.data.map(mapAbsence));
         if (tard.data) setTardiness(tard.data.map(mapTardiness));
+        if (ed.data)   setEarlyDepartures(ed.data.map(mapEarlyDeparture));
         if (n.data)    setNotifications(n.data.map(mapNotification));
         if (s.data)    setSettings({ schoolName: s.data.school_name, defaultScheduledTime: s.data.default_scheduled_time, principalName: (s.data.principal_name as string) ?? '' });
       } catch (err) {
@@ -192,6 +202,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       .then(({ error }) => { if (error) console.error(error); });
   }, []);
 
+  // ── Early Departures ──────────────────────────────────────────────────────
+  const addEarlyDeparture = useCallback((e: Omit<EarlyDeparture, 'id' | 'createdAt'>) => {
+    const record: EarlyDeparture = { ...e, id: generateId(), createdAt: new Date().toISOString() };
+    setEarlyDepartures(prev => [...prev, record]);
+    supabase.from('early_departures').insert({
+      id: record.id, teacher_id: record.teacherId, date: record.date,
+      scheduled_end_time: record.scheduledEndTime, actual_departure_time: record.actualDepartureTime,
+      notes: record.notes, created_at: record.createdAt,
+    }).then(({ error }) => { if (error) console.error(error); });
+  }, []);
+
+  const updateEarlyDeparture = useCallback((id: string, e: Partial<EarlyDeparture>) => {
+    setEarlyDepartures(prev => prev.map(x => x.id === id ? { ...x, ...e } : x));
+    const u: Record<string, unknown> = {};
+    if (e.teacherId           !== undefined) u.teacher_id           = e.teacherId;
+    if (e.date                !== undefined) u.date                 = e.date;
+    if (e.scheduledEndTime    !== undefined) u.scheduled_end_time   = e.scheduledEndTime;
+    if (e.actualDepartureTime !== undefined) u.actual_departure_time = e.actualDepartureTime;
+    if (e.notes               !== undefined) u.notes                = e.notes;
+    supabase.from('early_departures').update(u).eq('id', id)
+      .then(({ error }) => { if (error) console.error(error); });
+  }, []);
+
+  const deleteEarlyDeparture = useCallback((id: string) => {
+    setEarlyDepartures(prev => prev.filter(x => x.id !== id));
+    supabase.from('early_departures').delete().eq('id', id)
+      .then(({ error }) => { if (error) console.error(error); });
+  }, []);
+
   // ── Notifications ─────────────────────────────────────────────────────────
   const markNotificationRead = useCallback((id: string) => {
     setNotifications(prev => prev.map(x => x.id === id ? { ...x, isRead: true } : x));
@@ -214,10 +253,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   return (
     <AppContext.Provider value={{
-      teachers, absences, tardiness, notifications, settings, loading,
+      teachers, absences, tardiness, earlyDepartures, notifications, settings, loading,
       addTeacher, updateTeacher, deleteTeacher,
       addAbsence, updateAbsence, deleteAbsence,
       addTardiness, updateTardiness, deleteTardiness,
+      addEarlyDeparture, updateEarlyDeparture, deleteEarlyDeparture,
       markNotificationRead, updateSettings, unreadCount,
     }}>
       {children}

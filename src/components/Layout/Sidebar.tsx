@@ -1,6 +1,6 @@
 import { NavLink } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, CalendarX, Clock, BarChart3, FileText, X, Settings, LogOut,
+  LayoutDashboard, Users, CalendarX, Clock, LogIn, BarChart3, FileText, X, Settings, LogOut,
 } from 'lucide-react';
 
 const links = [
@@ -8,6 +8,7 @@ const links = [
   { to: '/teachers', label: 'المعلمون', icon: Users },
   { to: '/absences', label: 'الغياب', icon: CalendarX },
   { to: '/tardiness', label: 'التأخير', icon: Clock },
+  { to: '/early-departure', label: 'الانصراف المبكر', icon: LogIn },
   { to: '/statistics', label: 'الإحصائيات', icon: BarChart3 },
   { to: '/reports', label: 'التقارير', icon: FileText },
   { to: '/settings', label: 'الإعدادات', icon: Settings },

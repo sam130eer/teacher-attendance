@@ -1,4 +1,4 @@
-import type { Absence, Tardiness } from '../types';
+import type { Absence, Tardiness, EarlyDeparture } from '../types';
 
 export function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2);
@@ -30,6 +30,12 @@ export function calcTardinessMinutes(tardiness: Tardiness): number {
   const [sh, sm] = tardiness.scheduledTime.split(':').map(Number);
   const [ah, am] = tardiness.actualTime.split(':').map(Number);
   return (ah * 60 + am) - (sh * 60 + sm);
+}
+
+export function calcEarlyDepartureMinutes(ed: EarlyDeparture): number {
+  const [sh, sm] = ed.scheduledEndTime.split(':').map(Number);
+  const [ah, am] = ed.actualDepartureTime.split(':').map(Number);
+  return (sh * 60 + sm) - (ah * 60 + am);
 }
 
 export function getMonthName(month: number): string {

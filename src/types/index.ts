@@ -30,6 +30,16 @@ export interface Tardiness {
   createdAt: string;
 }
 
+export interface EarlyDeparture {
+  id: string;
+  teacherId: string;
+  date: string;
+  scheduledEndTime: string;
+  actualDepartureTime: string;
+  notes: string;
+  createdAt: string;
+}
+
 export interface Notification {
   id: string;
   teacherId: string;

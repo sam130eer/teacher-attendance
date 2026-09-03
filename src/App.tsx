@@ -9,6 +9,7 @@ import Absences from './pages/Absences';
 import Tardiness from './pages/Tardiness';
 import Statistics from './pages/Statistics';
 import Reports from './pages/Reports';
+import EarlyDeparturePage from './pages/EarlyDeparture';
 import SettingsPage from './pages/Settings';
 import Login from './pages/Login';
 
@@ -40,6 +41,7 @@ function Layout({ onLogout }: { onLogout: () => void }) {
             <Route path="/teachers" element={<Teachers />} />
             <Route path="/absences" element={<Absences />} />
             <Route path="/tardiness" element={<Tardiness />} />
+            <Route path="/early-departure" element={<EarlyDeparturePage />} />
             <Route path="/statistics" element={<Statistics />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/settings" element={<SettingsPage />} />
