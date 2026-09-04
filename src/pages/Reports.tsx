@@ -4,19 +4,19 @@ import { useApp } from '../context/AppContext';
 import Badge from '../components/UI/Badge';
 import type { AbsenceType } from '../types';
 import { ABSENCE_TYPES } from '../types';
-import { calcAbsenceDays, calcTardinessMinutes, formatDate, formatTime, getCurrentMonthRange } from '../utils/helpers';
+import { calcAbsenceDays, calcTardinessMinutes, calcEarlyDepartureMinutes, formatDate, formatTime, getCurrentMonthRange } from '../utils/helpers';
 import * as XLSX from 'xlsx';
 
-type ReportType = 'absence' | 'tardiness' | 'summary';
+type ReportType = 'absence' | 'tardiness' | 'early_departure' | 'summary';
 
 export default function Reports() {
-  const { teachers, absences, tardiness } = useApp();
+  const { teachers, absences, tardiness, earlyDepartures } = useApp();
   const { from: mFrom, to: mTo } = getCurrentMonthRange();
 
-  const [reportType, setReportType] = useState<ReportType>('absence');
-  const [dateFrom, setDateFrom] = useState(mFrom);
-  const [dateTo, setDateTo] = useState(mTo);
-  const [teacherId, setTeacherId] = useState('');
+  const [reportType, setReportType]   = useState<ReportType>('absence');
+  const [dateFrom, setDateFrom]       = useState(mFrom);
+  const [dateTo, setDateTo]           = useState(mTo);
+  const [teacherId, setTeacherId]     = useState('');
   const [absenceType, setAbsenceType] = useState<AbsenceType | ''>('');
 
   const filteredAbsences = absences.filter(a => {
@@ -34,18 +34,29 @@ export default function Reports() {
     return true;
   }).sort((a, b) => b.date.localeCompare(a.date));
 
+  const filteredEarlyDep = earlyDepartures.filter(r => {
+    if (teacherId && r.teacherId !== teacherId) return false;
+    if (dateFrom && r.date < dateFrom) return false;
+    if (dateTo && r.date > dateTo) return false;
+    return true;
+  }).sort((a, b) => b.date.localeCompare(a.date));
+
   const summaryData = teachers.map(t => {
     const tAbs = filteredAbsences.filter(a => a.teacherId === t.id);
     const tTar = filteredTardiness.filter(x => x.teacherId === t.id);
-    const totalDays = tAbs.reduce((s, a) => s + calcAbsenceDays(a), 0);
-    const notInFares = tAbs.filter(a => !a.addedInFares).length;
-    const totalMins = tTar.reduce((s, x) => s + calcTardinessMinutes(x), 0);
-    return { teacher: t, absDays: totalDays, absTimes: tAbs.length, tarTimes: tTar.length, notInFares, totalMins };
+    const tEd  = filteredEarlyDep.filter(x => x.teacherId === t.id);
+    const totalDays   = tAbs.reduce((s, a) => s + calcAbsenceDays(a), 0);
+    const notInFares  = tAbs.filter(a => !a.addedInFares).length;
+    const totalMins   = tTar.reduce((s, x) => s + calcTardinessMinutes(x), 0);
+    const edMins      = tEd.reduce((s, x) => s + calcEarlyDepartureMinutes(x), 0);
+    return { teacher: t, absDays: totalDays, absTimes: tAbs.length, tarTimes: tTar.length, notInFares, totalMins, edTimes: tEd.length, edMins };
   });
 
   function exportPDF() {
-    const title = reportType === 'absence' ? 'تقرير الغياب' : reportType === 'tardiness' ? 'تقرير التأخير' : 'التقرير الشامل';
-
+    const titles: Record<ReportType, string> = {
+      absence: 'تقرير الغياب', tardiness: 'تقرير التأخير',
+      early_departure: 'تقرير الانصراف المبكر', summary: 'التقرير الشامل',
+    };
     let thead = '';
     let tbody = '';
 
@@ -53,37 +64,42 @@ export default function Reports() {
       const totalDays = filteredAbsences.reduce((s, a) => s + calcAbsenceDays(a), 0);
       thead = '<tr><th>#</th><th>المعلم</th><th>نوع الغياب</th><th>من</th><th>إلى</th><th>الأيام</th><th>ملاحظات</th></tr>';
       tbody = filteredAbsences.map((a, i) => `<tr>
-        <td>${i + 1}</td>
-        <td>${teachers.find(t => t.id === a.teacherId)?.name || ''}</td>
-        <td>${ABSENCE_TYPES[a.type]}</td>
-        <td>${a.startDate}</td><td>${a.endDate}</td>
-        <td>${calcAbsenceDays(a)} يوم</td>
-        <td>${a.notes || ''}</td>
+        <td>${i + 1}</td><td>${teachers.find(t => t.id === a.teacherId)?.name || ''}</td>
+        <td>${ABSENCE_TYPES[a.type]}</td><td>${a.startDate}</td><td>${a.endDate}</td>
+        <td>${calcAbsenceDays(a)} يوم</td><td>${a.notes || ''}</td>
       </tr>`).join('') + `<tr style="background:#f0f0f0;font-weight:bold">
         <td colspan="5" style="text-align:right;padding-right:12px">الإجمالي</td>
-        <td>${totalDays} يوم</td>
-        <td></td>
+        <td>${totalDays} يوم</td><td></td>
       </tr>`;
     } else if (reportType === 'tardiness') {
       const totalMins = filteredTardiness.reduce((s, t) => s + calcTardinessMinutes(t), 0);
       thead = '<tr><th>#</th><th>المعلم</th><th>التاريخ</th><th>الوقت المقرر</th><th>وقت الحضور</th><th>الدقائق</th><th>ملاحظات</th></tr>';
       tbody = filteredTardiness.map((t, i) => `<tr>
-        <td>${i + 1}</td>
-        <td>${teachers.find(x => x.id === t.teacherId)?.name || ''}</td>
+        <td>${i + 1}</td><td>${teachers.find(x => x.id === t.teacherId)?.name || ''}</td>
         <td>${t.date}</td><td>${t.scheduledTime}</td><td>${t.actualTime}</td>
-        <td>${calcTardinessMinutes(t)} دقيقة</td>
-        <td>${t.notes || ''}</td>
+        <td>${calcTardinessMinutes(t)} دقيقة</td><td>${t.notes || ''}</td>
       </tr>`).join('') + `<tr style="background:#f0f0f0;font-weight:bold">
         <td colspan="5" style="text-align:right;padding-right:12px">الإجمالي</td>
-        <td>${totalMins} دقيقة</td>
-        <td></td>
+        <td>${totalMins} دقيقة</td><td></td>
+      </tr>`;
+    } else if (reportType === 'early_departure') {
+      const totalMins = filteredEarlyDep.reduce((s, r) => s + calcEarlyDepartureMinutes(r), 0);
+      thead = '<tr><th>#</th><th>المعلم</th><th>التاريخ</th><th>وقت الانصراف المقرر</th><th>وقت الانصراف الفعلي</th><th>الدقائق</th><th>ملاحظات</th></tr>';
+      tbody = filteredEarlyDep.map((r, i) => `<tr>
+        <td>${i + 1}</td><td>${teachers.find(x => x.id === r.teacherId)?.name || ''}</td>
+        <td>${r.date}</td><td>${r.scheduledEndTime}</td><td>${r.actualDepartureTime}</td>
+        <td>${calcEarlyDepartureMinutes(r)} دقيقة</td><td>${r.notes || ''}</td>
+      </tr>`).join('') + `<tr style="background:#f0f0f0;font-weight:bold">
+        <td colspan="5" style="text-align:right;padding-right:12px">الإجمالي</td>
+        <td>${totalMins} دقيقة</td><td></td>
       </tr>`;
     } else {
-      thead = '<tr><th>المعلم</th><th>التخصص</th><th>أيام الغياب</th><th>مرات الغياب</th><th>بدون عذر</th><th>مرات التأخير</th><th>دقائق التأخير</th></tr>';
+      thead = '<tr><th>المعلم</th><th>التخصص</th><th>أيام الغياب</th><th>مرات الغياب</th><th>بدون عذر</th><th>مرات التأخير</th><th>دقائق التأخير</th><th>مرات الانصراف المبكر</th><th>دقائق الانصراف المبكر</th></tr>';
       tbody = summaryData.map(s => `<tr>
         <td>${s.teacher.name}</td><td>${s.teacher.specialty}</td>
-        <td>${s.absDays}</td><td>${s.absTimes}</td>
-        <td>${s.notInFares}</td><td>${s.tarTimes}</td><td>${s.totalMins}</td>
+        <td>${s.absDays}</td><td>${s.absTimes}</td><td>${s.notInFares}</td>
+        <td>${s.tarTimes}</td><td>${s.totalMins}</td>
+        <td>${s.edTimes}</td><td>${s.edMins}</td>
       </tr>`).join('');
     }
 
@@ -97,7 +113,7 @@ export default function Reports() {
       th { background: #ddd; font-weight: bold; }
       @media print { @page { size: A4 landscape; margin: 1.5cm; } }
     </style></head><body>
-    <h2>${title}</h2>
+    <h2>${titles[reportType]}</h2>
     <p>من ${dateFrom} إلى ${dateTo}</p>
     <table><thead>${thead}</thead><tbody>${tbody}</tbody></table>
     </body></html>`;
@@ -114,11 +130,7 @@ export default function Reports() {
       headers = ['المعلم', 'نوع الغياب', 'من', 'إلى', 'الأيام', 'ملاحظات'];
       data = filteredAbsences.map(a => [
         teachers.find(t => t.id === a.teacherId)?.name || '',
-        ABSENCE_TYPES[a.type],
-        a.startDate,
-        a.endDate,
-        calcAbsenceDays(a),
-        a.notes,
+        ABSENCE_TYPES[a.type], a.startDate, a.endDate, calcAbsenceDays(a), a.notes,
       ]);
     } else if (reportType === 'tardiness') {
       headers = ['المعلم', 'التاريخ', 'الوقت المقرر', 'وقت الحضور', 'الدقائق', 'ملاحظات'];
@@ -126,10 +138,17 @@ export default function Reports() {
         teachers.find(x => x.id === t.teacherId)?.name || '',
         t.date, t.scheduledTime, t.actualTime, calcTardinessMinutes(t), t.notes,
       ]);
+    } else if (reportType === 'early_departure') {
+      headers = ['المعلم', 'التاريخ', 'وقت الانصراف المقرر', 'وقت الانصراف الفعلي', 'الدقائق', 'ملاحظات'];
+      data = filteredEarlyDep.map(r => [
+        teachers.find(x => x.id === r.teacherId)?.name || '',
+        r.date, r.scheduledEndTime, r.actualDepartureTime, calcEarlyDepartureMinutes(r), r.notes,
+      ]);
     } else {
-      headers = ['المعلم', 'التخصص', 'أيام الغياب', 'مرات الغياب', 'لم يُضف في فارس', 'مرات التأخير', 'إجمالي دقائق التأخير'];
+      headers = ['المعلم', 'التخصص', 'أيام الغياب', 'مرات الغياب', 'لم يُضف في فارس', 'مرات التأخير', 'دقائق التأخير', 'مرات الانصراف المبكر', 'دقائق الانصراف المبكر'];
       data = summaryData.map(s => [
-        s.teacher.name, s.teacher.specialty, s.absDays, s.absTimes, s.notInFares, s.tarTimes, s.totalMins,
+        s.teacher.name, s.teacher.specialty, s.absDays, s.absTimes, s.notInFares,
+        s.tarTimes, s.totalMins, s.edTimes, s.edMins,
       ]);
     }
 
@@ -138,6 +157,8 @@ export default function Reports() {
     XLSX.utils.book_append_sheet(wb, ws, 'تقرير');
     XLSX.writeFile(wb, `report-${reportType}-${dateFrom}-${dateTo}.xlsx`);
   }
+
+  const totalEdMins = filteredEarlyDep.reduce((s, r) => s + calcEarlyDepartureMinutes(r), 0);
 
   return (
     <div className="space-y-6">
@@ -152,13 +173,11 @@ export default function Reports() {
         <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div>
             <label className="block text-base font-medium text-slate-600 mb-1">نوع التقرير</label>
-            <select
-              value={reportType}
-              onChange={e => setReportType(e.target.value as ReportType)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+            <select value={reportType} onChange={e => setReportType(e.target.value as ReportType)}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="absence">تقرير الغياب</option>
               <option value="tardiness">تقرير التأخير</option>
+              <option value="early_departure">تقرير الانصراف المبكر</option>
               <option value="summary">التقرير الشامل</option>
             </select>
           </div>
@@ -177,11 +196,8 @@ export default function Reports() {
 
           <div>
             <label className="block text-base font-medium text-slate-600 mb-1">المعلم (اختياري)</label>
-            <select
-              value={teacherId}
-              onChange={e => setTeacherId(e.target.value)}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
+            <select value={teacherId} onChange={e => setTeacherId(e.target.value)}
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="">جميع المعلمين</option>
               {[...teachers].sort((a, b) => a.name.localeCompare(b.name, 'ar')).map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
@@ -190,11 +206,8 @@ export default function Reports() {
           {reportType === 'absence' && (
             <div>
               <label className="block text-base font-medium text-slate-600 mb-1">نوع الغياب (اختياري)</label>
-              <select
-                value={absenceType}
-                onChange={e => setAbsenceType(e.target.value as AbsenceType | '')}
-                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
+              <select value={absenceType} onChange={e => setAbsenceType(e.target.value as AbsenceType | '')}
+                className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500">
                 <option value="">الكل</option>
                 {Object.entries(ABSENCE_TYPES).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
               </select>
@@ -203,26 +216,14 @@ export default function Reports() {
         </div>
 
         <div className="flex gap-3 pt-2 border-t border-slate-100">
-          <button
-            onClick={exportPDF}
-            className="flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl text-base font-medium hover:bg-red-700"
-          >
-            <Download size={15} />
-            تصدير PDF
+          <button onClick={exportPDF} className="flex items-center gap-2 bg-red-600 text-white px-4 py-2.5 rounded-xl text-base font-medium hover:bg-red-700">
+            <Download size={15} /> تصدير PDF
           </button>
-          <button
-            onClick={exportExcel}
-            className="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl text-base font-medium hover:bg-green-700"
-          >
-            <Download size={15} />
-            تصدير Excel
+          <button onClick={exportExcel} className="flex items-center gap-2 bg-green-600 text-white px-4 py-2.5 rounded-xl text-base font-medium hover:bg-green-700">
+            <Download size={15} /> تصدير Excel
           </button>
-          <button
-            onClick={() => window.print()}
-            className="flex items-center gap-2 border border-slate-200 px-4 py-2.5 rounded-xl text-base font-medium hover:bg-slate-50"
-          >
-            <Printer size={15} />
-            طباعة
+          <button onClick={() => window.print()} className="flex items-center gap-2 border border-slate-200 px-4 py-2.5 rounded-xl text-base font-medium hover:bg-slate-50">
+            <Printer size={15} /> طباعة
           </button>
         </div>
       </div>
@@ -230,18 +231,18 @@ export default function Reports() {
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
         <div className="p-4 border-b border-slate-100 flex items-center justify-between">
           <h2 className="font-bold text-slate-800">
-            {reportType === 'absence' ? `تقرير الغياب (${filteredAbsences.length} سجل)` :
-              reportType === 'tardiness' ? `تقرير التأخير (${filteredTardiness.length} سجل)` :
-                'التقرير الشامل'}
+            {reportType === 'absence'         ? `تقرير الغياب (${filteredAbsences.length} سجل)` :
+             reportType === 'tardiness'        ? `تقرير التأخير (${filteredTardiness.length} سجل)` :
+             reportType === 'early_departure'  ? `تقرير الانصراف المبكر (${filteredEarlyDep.length} سجل)` :
+             'التقرير الشامل'}
           </h2>
           <span className="text-xs text-slate-400">{dateFrom} - {dateTo}</span>
         </div>
 
         <div className="overflow-x-auto">
+          {/* ── Absence ── */}
           {reportType === 'absence' && (
-            filteredAbsences.length === 0 ? (
-              <p className="p-8 text-center text-slate-400">لا توجد بيانات</p>
-            ) : (
+            filteredAbsences.length === 0 ? <p className="p-8 text-center text-slate-400">لا توجد بيانات</p> : (
               <table className="w-full text-base">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
@@ -260,8 +261,8 @@ export default function Reports() {
                       <td className="p-3 text-slate-400">{i + 1}</td>
                       <td className="p-3 font-medium">{teachers.find(t => t.id === a.teacherId)?.name || '—'}</td>
                       <td className="p-3"><Badge type={a.type} /></td>
-                      <td className="p-3 text-slate-600 text-base">{formatDate(a.startDate)}</td>
-                      <td className="p-3 text-slate-600 text-base">{formatDate(a.endDate)}</td>
+                      <td className="p-3 text-slate-600">{formatDate(a.startDate)}</td>
+                      <td className="p-3 text-slate-600">{formatDate(a.endDate)}</td>
                       <td className="p-3"><span className="bg-blue-50 text-blue-700 px-2 py-0.5 rounded-full text-xs">{calcAbsenceDays(a)} يوم</span></td>
                       <td className="p-3 text-slate-500">{a.notes || '—'}</td>
                     </tr>
@@ -269,21 +270,18 @@ export default function Reports() {
                 </tbody>
                 <tfoot className="bg-slate-50 border-t border-slate-200">
                   <tr>
-                    <td colSpan={5} className="p-3 font-semibold text-slate-700 text-left">الإجمالي</td>
-                    <td className="p-3 font-bold text-blue-700">
-                      {filteredAbsences.reduce((s, a) => s + calcAbsenceDays(a), 0)} يوم
-                    </td>
-                    <td></td>
+                    <td colSpan={5} className="p-3 font-semibold text-slate-700">الإجمالي</td>
+                    <td className="p-3 font-bold text-blue-700">{filteredAbsences.reduce((s, a) => s + calcAbsenceDays(a), 0)} يوم</td>
+                    <td />
                   </tr>
                 </tfoot>
               </table>
             )
           )}
 
+          {/* ── Tardiness ── */}
           {reportType === 'tardiness' && (
-            filteredTardiness.length === 0 ? (
-              <p className="p-8 text-center text-slate-400">لا توجد بيانات</p>
-            ) : (
+            filteredTardiness.length === 0 ? <p className="p-8 text-center text-slate-400">لا توجد بيانات</p> : (
               <table className="w-full text-base">
                 <thead className="bg-slate-50 border-b border-slate-100">
                   <tr>
@@ -303,14 +301,10 @@ export default function Reports() {
                       <tr key={t.id} className="odd:bg-white even:bg-blue-50 hover:bg-indigo-100/60 transition-colors">
                         <td className="p-3 text-slate-400">{i + 1}</td>
                         <td className="p-3 font-medium">{teachers.find(x => x.id === t.teacherId)?.name || '—'}</td>
-                        <td className="p-3 text-slate-600 text-base">{formatDate(t.date)}</td>
-                        <td className="p-3 text-slate-600 text-base">{formatTime(t.scheduledTime)}</td>
-                        <td className="p-3 text-slate-600 text-base">{formatTime(t.actualTime)}</td>
-                        <td className="p-3">
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${mins >= 30 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                            +{mins} دقيقة
-                          </span>
-                        </td>
+                        <td className="p-3 text-slate-600">{formatDate(t.date)}</td>
+                        <td className="p-3 text-slate-600">{formatTime(t.scheduledTime)}</td>
+                        <td className="p-3 text-slate-600">{formatTime(t.actualTime)}</td>
+                        <td className="p-3"><span className={`px-2 py-0.5 rounded-full text-xs font-medium ${mins >= 30 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>+{mins} دقيقة</span></td>
                         <td className="p-3 text-slate-500">{t.notes || '—'}</td>
                       </tr>
                     );
@@ -318,46 +312,87 @@ export default function Reports() {
                 </tbody>
                 <tfoot className="bg-slate-50 border-t border-slate-200">
                   <tr>
-                    <td colSpan={5} className="p-3 font-semibold text-slate-700 text-left">إجمالي الدقائق</td>
-                    <td className="p-3 font-bold text-yellow-700">
-                      {filteredTardiness.reduce((s, t) => s + calcTardinessMinutes(t), 0)} دقيقة
-                    </td>
-                    <td></td>
+                    <td colSpan={5} className="p-3 font-semibold text-slate-700">إجمالي الدقائق</td>
+                    <td className="p-3 font-bold text-yellow-700">{filteredTardiness.reduce((s, t) => s + calcTardinessMinutes(t), 0)} دقيقة</td>
+                    <td />
                   </tr>
                 </tfoot>
               </table>
             )
           )}
 
+          {/* ── Early Departure ── */}
+          {reportType === 'early_departure' && (
+            filteredEarlyDep.length === 0 ? <p className="p-8 text-center text-slate-400">لا توجد بيانات</p> : (
+              <table className="w-full text-base">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="text-right p-3 font-semibold text-slate-700">#</th>
+                    <th className="text-right p-3 font-semibold text-slate-700">المعلم</th>
+                    <th className="text-right p-3 font-semibold text-slate-700">التاريخ</th>
+                    <th className="text-right p-3 font-semibold text-slate-700">وقت الانصراف المقرر</th>
+                    <th className="text-right p-3 font-semibold text-slate-700">وقت الانصراف الفعلي</th>
+                    <th className="text-right p-3 font-semibold text-slate-700">الدقائق</th>
+                    <th className="text-right p-3 font-semibold text-slate-700">ملاحظات</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50">
+                  {filteredEarlyDep.map((r, i) => {
+                    const mins = calcEarlyDepartureMinutes(r);
+                    return (
+                      <tr key={r.id} className="odd:bg-white even:bg-rose-50 hover:bg-rose-100/60 transition-colors">
+                        <td className="p-3 text-slate-400">{i + 1}</td>
+                        <td className="p-3 font-medium">{teachers.find(x => x.id === r.teacherId)?.name || '—'}</td>
+                        <td className="p-3 text-slate-600">{formatDate(r.date)}</td>
+                        <td className="p-3 text-slate-600">{formatTime(r.scheduledEndTime)}</td>
+                        <td className="p-3 text-slate-600">{formatTime(r.actualDepartureTime)}</td>
+                        <td className="p-3"><span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs font-medium">{mins} دقيقة</span></td>
+                        <td className="p-3 text-slate-500">{r.notes || '—'}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+                <tfoot className="bg-slate-50 border-t border-slate-200">
+                  <tr>
+                    <td colSpan={5} className="p-3 font-semibold text-slate-700">إجمالي الدقائق</td>
+                    <td className="p-3 font-bold text-rose-700">{totalEdMins} دقيقة</td>
+                    <td />
+                  </tr>
+                </tfoot>
+              </table>
+            )
+          )}
+
+          {/* ── Summary ── */}
           {reportType === 'summary' && (
             <table className="w-full text-base">
               <thead className="bg-slate-50 border-b border-slate-100">
                 <tr>
                   <th className="text-right p-3 font-semibold text-slate-700">المعلم</th>
                   <th className="text-right p-3 font-semibold text-slate-700">التخصص</th>
-                  <th className="text-right p-3 font-semibold text-slate-700">أيام الغياب</th>
-                  <th className="text-right p-3 font-semibold text-slate-700">مرات الغياب</th>
-                  <th className="text-right p-3 font-semibold text-slate-700">بدون عذر</th>
-                  <th className="text-right p-3 font-semibold text-slate-700">مرات التأخير</th>
-                  <th className="text-right p-3 font-semibold text-slate-700">دقائق التأخير</th>
+                  <th className="text-center p-3 font-semibold text-slate-700">أيام الغياب</th>
+                  <th className="text-center p-3 font-semibold text-slate-700">مرات الغياب</th>
+                  <th className="text-center p-3 font-semibold text-slate-700">بدون عذر</th>
+                  <th className="text-center p-3 font-semibold text-slate-700">مرات التأخير</th>
+                  <th className="text-center p-3 font-semibold text-slate-700">د. التأخير</th>
+                  <th className="text-center p-3 font-semibold text-slate-700">مرات الانصراف</th>
+                  <th className="text-center p-3 font-semibold text-slate-700">د. الانصراف</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50">
                 {summaryData.map(s => (
                   <tr key={s.teacher.id} className="odd:bg-white even:bg-blue-50 hover:bg-indigo-100/60 transition-colors">
                     <td className="p-3 font-medium">{s.teacher.name}</td>
-                    <td className="p-3 text-slate-600 text-base">{s.teacher.specialty}</td>
-                    <td className="p-3">
-                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.absDays > 5 ? 'bg-red-100 text-red-700' : s.absDays > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>
-                        {s.absDays} يوم
-                      </span>
+                    <td className="p-3 text-slate-600">{s.teacher.specialty}</td>
+                    <td className="p-3 text-center">
+                      <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${s.absDays > 5 ? 'bg-red-100 text-red-700' : s.absDays > 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-green-100 text-green-700'}`}>{s.absDays} يوم</span>
                     </td>
                     <td className="p-3 text-center">{s.absTimes}</td>
-                    <td className="p-3 text-center">
-                      {s.notInFares > 0 ? <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">{s.notInFares}</span> : '—'}
-                    </td>
+                    <td className="p-3 text-center">{s.notInFares > 0 ? <span className="bg-red-100 text-red-700 px-2 py-0.5 rounded-full text-xs">{s.notInFares}</span> : '—'}</td>
                     <td className="p-3 text-center">{s.tarTimes}</td>
                     <td className="p-3 text-center text-slate-600">{s.totalMins > 0 ? `${s.totalMins} د` : '—'}</td>
+                    <td className="p-3 text-center">{s.edTimes > 0 ? <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs">{s.edTimes}</span> : '—'}</td>
+                    <td className="p-3 text-center text-slate-600">{s.edMins > 0 ? `${s.edMins} د` : '—'}</td>
                   </tr>
                 ))}
               </tbody>

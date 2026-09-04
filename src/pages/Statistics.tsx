@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { calcAbsenceDays, calcTardinessMinutes, getMonthName } from '../utils/helpers';
+import { calcAbsenceDays, calcTardinessMinutes, calcEarlyDepartureMinutes, getMonthName } from '../utils/helpers';
 import type { AbsenceType } from '../types';
 import { ABSENCE_COLORS, ABSENCE_TYPES } from '../types';
 
@@ -25,20 +25,19 @@ import {
 
 type Period = 'monthly' | 'quarterly' | 'yearly';
 
-
-
 export default function Statistics() {
-  const { teachers, absences, tardiness } = useApp();
+  const { teachers, absences, tardiness, earlyDepartures } = useApp();
   const [period, setPeriod] = useState<Period>('monthly');
   const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const years = Array.from(new Set([
     ...absences.map(a => new Date(a.startDate).getFullYear()),
     ...tardiness.map(t => new Date(t.date).getFullYear()),
+    ...earlyDepartures.map(e => new Date(e.date).getFullYear()),
     new Date().getFullYear(),
   ])).sort((a, b) => b - a);
 
-  function getAbsencesByPeriod() {
+  function getDataByPeriod() {
     if (period === 'monthly') {
       return Array.from({ length: 12 }, (_, i) => {
         const monthAbs = absences.filter(a => {
@@ -49,10 +48,15 @@ export default function Statistics() {
           const d = new Date(t.date);
           return d.getFullYear() === selectedYear && d.getMonth() === i;
         });
+        const monthEd = earlyDepartures.filter(e => {
+          const d = new Date(e.date);
+          return d.getFullYear() === selectedYear && d.getMonth() === i;
+        });
         return {
           name: getMonthName(i),
           غياب: monthAbs.reduce((s, a) => s + calcAbsenceDays(a), 0),
           تأخير: monthTar.length,
+          انصراف: monthEd.length,
         };
       });
     }
@@ -66,10 +70,15 @@ export default function Statistics() {
           const d = new Date(t.date);
           return d.getFullYear() === selectedYear && Math.floor(d.getMonth() / 3) === q;
         });
+        const qEd = earlyDepartures.filter(e => {
+          const d = new Date(e.date);
+          return d.getFullYear() === selectedYear && Math.floor(d.getMonth() / 3) === q;
+        });
         return {
           name: `الفصل ${q + 1}`,
           غياب: qAbs.reduce((s, a) => s + calcAbsenceDays(a), 0),
           تأخير: qTar.length,
+          انصراف: qEd.length,
         };
       });
     }
@@ -77,6 +86,7 @@ export default function Statistics() {
       name: y.toString(),
       غياب: absences.filter(a => new Date(a.startDate).getFullYear() === y).reduce((s, a) => s + calcAbsenceDays(a), 0),
       تأخير: tardiness.filter(t => new Date(t.date).getFullYear() === y).length,
+      انصراف: earlyDepartures.filter(e => new Date(e.date).getFullYear() === y).length,
     }));
   }
 
@@ -91,8 +101,10 @@ export default function Statistics() {
   const teacherStatsBase = teachers.map(t => {
     const tAbs = absences.filter(a => a.teacherId === t.id && new Date(a.startDate).getFullYear() === selectedYear);
     const tTar = tardiness.filter(x => x.teacherId === t.id && new Date(x.date).getFullYear() === selectedYear);
-    const totalMins = tTar.reduce((s, x) => s + calcTardinessMinutes(x), 0);
-    const absDays = tAbs.reduce((s, a) => s + calcAbsenceDays(a), 0);
+    const tEd  = earlyDepartures.filter(x => x.teacherId === t.id && new Date(x.date).getFullYear() === selectedYear);
+    const totalMins  = tTar.reduce((s, x) => s + calcTardinessMinutes(x), 0);
+    const edMins     = tEd.reduce((s, x) => s + calcEarlyDepartureMinutes(x), 0);
+    const absDays    = tAbs.reduce((s, a) => s + calcAbsenceDays(a), 0);
     const typeCounts = Object.fromEntries(
       ABSENCE_TYPE_KEYS.map(type => [
         type,
@@ -106,6 +118,8 @@ export default function Statistics() {
       totalMins,
       avgMins: tTar.length ? Math.round(totalMins / tTar.length) : 0,
       typeCounts,
+      edCount: tEd.length,
+      edMins,
     };
   });
 
@@ -113,18 +127,18 @@ export default function Statistics() {
     teacherStatsBase.some(t => t.typeCounts[type] > 0)
   );
 
-  const byAbsenceDays   = [...teacherStatsBase].sort((a, b) => b.absDays   - a.absDays  ).filter(x => x.absDays   > 0);
+  const byAbsenceDays    = [...teacherStatsBase].sort((a, b) => b.absDays   - a.absDays  ).filter(x => x.absDays   > 0);
   const byTardinessCount = [...teacherStatsBase].sort((a, b) => b.tarCount  - a.tarCount ).filter(x => x.tarCount  > 0);
   const byTardinessMins  = [...teacherStatsBase].sort((a, b) => b.totalMins - a.totalMins).filter(x => x.totalMins > 0);
+  const byEarlyDep       = [...teacherStatsBase].sort((a, b) => b.edMins    - a.edMins   ).filter(x => x.edMins    > 0);
 
   // ── Summary numbers ────────────────────────────────────────────────────────
 
-  const periodData = getAbsencesByPeriod();
-  const totalAbsDays = teacherStatsBase.reduce((s, t) => s + t.absDays, 0);
-  const totalTarCount = teacherStatsBase.reduce((s, t) => s + t.tarCount, 0);
+  const periodData      = getDataByPeriod();
+  const totalAbsDays    = teacherStatsBase.reduce((s, t) => s + t.absDays, 0);
+  const totalTarCount   = teacherStatsBase.reduce((s, t) => s + t.tarCount, 0);
+  const totalEdMins     = teacherStatsBase.reduce((s, t) => s + t.edMins, 0);
   const avgAbsPerTeacher = teachers.length ? (totalAbsDays / teachers.length).toFixed(1) : '0';
-  const allMins = teacherStatsBase.map(t => t.totalMins).filter(m => m > 0);
-  const avgMins = allMins.length ? Math.round(allMins.reduce((s, m) => s + m, 0) / teacherStatsBase.filter(t => t.tarCount > 0).length) : 0;
 
   return (
     <div className="space-y-6">
@@ -133,7 +147,7 @@ export default function Statistics() {
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">الإحصائيات والتحليلات</h1>
-          <p className="text-slate-500 text-base mt-1">تحليل شامل لبيانات الغياب والتأخير</p>
+          <p className="text-slate-500 text-base mt-1">تحليل شامل لبيانات الغياب والتأخير والانصراف المبكر</p>
         </div>
         <div className="flex gap-3 flex-wrap">
           <select
@@ -160,10 +174,10 @@ export default function Statistics() {
       {/* Summary cards */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'إجمالي أيام الغياب', value: `${totalAbsDays} يوم`,     color: 'bg-indigo-50 text-indigo-700' },
-          { label: 'متوسط الغياب/معلم',  value: `${avgAbsPerTeacher} يوم`, color: 'bg-violet-50 text-violet-700' },
-          { label: 'حالات التأخير',       value: totalTarCount,             color: 'bg-amber-50  text-amber-700'  },
-          { label: 'متوسط التأخير',       value: `${avgMins} دقيقة`,        color: 'bg-orange-50 text-orange-700' },
+          { label: 'إجمالي أيام الغياب', value: `${totalAbsDays} يوم`,    color: 'bg-indigo-50 text-indigo-700' },
+          { label: 'متوسط الغياب/معلم',  value: `${avgAbsPerTeacher} يوم`,color: 'bg-violet-50 text-violet-700' },
+          { label: 'حالات التأخير',       value: totalTarCount,            color: 'bg-amber-50  text-amber-700'  },
+          { label: 'دقائق الانصراف المبكر', value: `${totalEdMins} دقيقة`, color: 'bg-rose-50   text-rose-700'   },
         ].map(s => (
           <div key={s.label} className={`rounded-2xl p-4 ${s.color}`}>
             <p className="text-sm opacity-70">{s.label}</p>
@@ -174,7 +188,7 @@ export default function Statistics() {
 
       {/* Period chart */}
       <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-        <h2 className="font-bold text-slate-800 mb-4">أيام الغياب وحالات التأخير</h2>
+        <h2 className="font-bold text-slate-800 mb-4">أيام الغياب وحالات التأخير والانصراف المبكر</h2>
         <ResponsiveContainer width="100%" height={280}>
           <BarChart data={periodData}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
@@ -182,8 +196,9 @@ export default function Statistics() {
             <YAxis tick={{ fontSize: 11 }} />
             <Tooltip />
             <Legend />
-            <Bar dataKey="غياب"  fill="#6366f1" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="تأخير" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="غياب"    fill="#6366f1" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="تأخير"   fill="#f59e0b" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="انصراف"  fill="#f43f5e" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
@@ -222,6 +237,22 @@ export default function Statistics() {
         </div>
       </div>
 
+      {/* Early departure bar chart */}
+      {byEarlyDep.length > 0 && (
+        <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
+          <h2 className="font-bold text-slate-800 mb-4">أكثر المعلمين انصرافاً مبكراً — دقائق ({selectedYear})</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={byEarlyDep.slice(0, 8)} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+              <XAxis type="number" tick={{ fontSize: 11 }} />
+              <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
+              <Tooltip formatter={(v) => [`${v} دقيقة`, 'الانصراف المبكر']} />
+              <Bar dataKey="edMins" fill="#f43f5e" radius={[0, 4, 4, 0]} />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      )}
+
       {/* Absence days bar chart */}
       {byAbsenceDays.length > 0 && (
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
@@ -246,7 +277,7 @@ export default function Statistics() {
       <div>
         <h2 className="text-xl font-bold text-slate-800 mb-4">ترتيب المعلمين</h2>
 
-        {/* Merged tardiness table */}
+        {/* Tardiness table */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-5">
           <div className="px-5 py-4 bg-gradient-to-l from-amber-500 to-orange-600">
             <h3 className="font-bold text-white text-base">إجمالي مدة وعدد أيام التأخير</h3>
@@ -312,9 +343,71 @@ export default function Statistics() {
           )}
         </div>
 
-        {/* Absence table — full width below */}
+        {/* Early departure ranking table */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-5">
+          <div className="px-5 py-4 bg-gradient-to-l from-rose-500 to-pink-600">
+            <h3 className="font-bold text-white text-base">الانصراف المبكر</h3>
+            <p className="text-white/70 text-xs mt-0.5">مرتب تنازلياً حسب الدقائق — {selectedYear}</p>
+          </div>
+          {byEarlyDep.length === 0 ? (
+            <p className="p-8 text-center text-slate-400 text-sm">لا توجد سجلات انصراف مبكر</p>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead className="bg-slate-50 border-b border-slate-100">
+                  <tr>
+                    <th className="text-center p-3 font-semibold text-slate-500 w-12">#</th>
+                    <th className="text-right p-3 font-semibold text-slate-700">الاسم</th>
+                    <th className="text-center p-3 font-semibold text-slate-700">عدد المرات</th>
+                    <th className="text-center p-3 font-semibold text-slate-700">إجمالي الدقائق</th>
+                    <th className="text-center p-3 font-semibold text-slate-700">الأيام المحتسبة</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {byEarlyDep.map((t, i) => {
+                    const days  = Math.floor(t.edMins / 420);
+                    const hours = Math.floor(t.edMins / 60);
+                    const mins  = t.edMins % 60;
+                    const timeLabel = hours > 0 && mins > 0
+                      ? `${hours} س ${mins} د`
+                      : hours > 0 ? `${hours} ساعة` : `${mins} دقيقة`;
+                    const stripe = i % 2 === 1 ? 'bg-rose-50/60' : 'bg-white';
+                    return (
+                      <tr key={t.name} className={`border-b border-slate-100 ${stripe} hover:bg-rose-50/70 transition-colors`}>
+                        <td className="p-3 text-center">
+                          <span className="inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-semibold bg-slate-100 text-slate-500">
+                            {i + 1}
+                          </span>
+                        </td>
+                        <td className="p-3 font-medium text-slate-800">{t.name}</td>
+                        <td className="p-3 text-center">
+                          <span className="bg-rose-50 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                            {t.edCount} مرة
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          <span className="bg-pink-50 text-pink-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
+                            {timeLabel}
+                          </span>
+                        </td>
+                        <td className="p-3 text-center">
+                          {days > 0
+                            ? <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">{days} يوم</span>
+                            : <span className="text-slate-300 text-xs">—</span>
+                          }
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </div>
+
+        {/* Absence table */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="px-5 py-4 bg-gradient-to-l from-rose-500 to-red-600">
+          <div className="px-5 py-4 bg-gradient-to-l from-red-500 to-rose-600">
             <h3 className="font-bold text-white text-base">أيام الغياب وأنواع الإجازات</h3>
             <p className="text-white/70 text-xs mt-0.5">مرتب تنازلياً حسب الأيام — {selectedYear}</p>
           </div>
