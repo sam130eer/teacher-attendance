@@ -1,11 +1,8 @@
-import { Users, CalendarX, Clock, TrendingUp, Circle, LogIn } from 'lucide-react';
+import { Users, CalendarX, Clock, LogIn, AlertTriangle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import StatCard from '../components/UI/StatCard';
 import Badge from '../components/UI/Badge';
 import { calcAbsenceDays, calcTardinessMinutes, calcEarlyDepartureMinutes, formatDate, getTodayStr, getCurrentMonthRange } from '../utils/helpers';
-import {
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
-} from 'recharts';
+import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import type { AbsenceType } from '../types';
 import { ABSENCE_COLORS, ABSENCE_TYPES } from '../types';
 
@@ -14,17 +11,18 @@ export default function Dashboard() {
   const today = getTodayStr();
   const { from, to } = getCurrentMonthRange();
 
-  const todayAbsences   = absences.filter(a => a.startDate <= today && a.endDate >= today);
-  const todayTardiness  = tardiness.filter(t => t.date === today);
-  const todayEarlyDep   = earlyDepartures.filter(e => e.date === today);
+  const todayAbsences  = absences.filter(a => a.startDate <= today && a.endDate >= today);
+  const todayTardiness = tardiness.filter(t => t.date === today);
+  const todayEarlyDep  = earlyDepartures.filter(e => e.date === today);
 
-  const monthAbsences   = absences.filter(a => a.startDate >= from && a.startDate <= to);
-  const monthTardiness  = tardiness.filter(t => t.date >= from && t.date <= to);
-  const monthEarlyDep   = earlyDepartures.filter(e => e.date >= from && e.date <= to);
+  const monthAbsences  = absences.filter(a => a.startDate >= from && a.startDate <= to);
+  const monthTardiness = tardiness.filter(t => t.date >= from && t.date <= to);
+  const monthEarlyDep  = earlyDepartures.filter(e => e.date >= from && e.date <= to);
 
-  const totalAbsenceDays  = monthAbsences.reduce((s, a) => s + calcAbsenceDays(a), 0);
-  const monthEdMins       = monthEarlyDep.reduce((s, e) => s + calcEarlyDepartureMinutes(e), 0);
-  const notInFaresCount   = absences.filter(a => !a.addedInFares).length;
+  const totalAbsDays = monthAbsences.reduce((s, a) => s + calcAbsenceDays(a), 0);
+  const totalTarMins = monthTardiness.reduce((s, t) => s + calcTardinessMinutes(t), 0);
+  const totalEdMins  = monthEarlyDep.reduce((s, e) => s + calcEarlyDepartureMinutes(e), 0);
+  const notInFares   = absences.filter(a => !a.addedInFares).length;
 
   const absenceByType = Object.entries(ABSENCE_TYPES).map(([type, name]) => ({
     name,
@@ -32,133 +30,206 @@ export default function Dashboard() {
     color: ABSENCE_COLORS[type as AbsenceType],
   })).filter(x => x.value > 0);
 
-  const topAbsent = teachers.map(t => ({
-    name: t.name.split(' ').slice(0, 2).join(' '),
-    days: absences.filter(a => a.teacherId === t.id).reduce((s, a) => s + calcAbsenceDays(a), 0),
-  })).sort((a, b) => b.days - a.days).slice(0, 5);
+  // latest 6 events merged & sorted
+  const recentEvents = [
+    ...[...absences].sort((a, b) => b.startDate.localeCompare(a.startDate)).slice(0, 6).map(a => ({ kind: 'absence' as const, id: a.id, teacherId: a.teacherId, date: a.startDate, type: a.type, mins: 0 })),
+    ...[...tardiness].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map(t => ({ kind: 'tardiness' as const, id: t.id, teacherId: t.teacherId, date: t.date, type: '' as AbsenceType, mins: calcTardinessMinutes(t) })),
+    ...[...earlyDepartures].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map(e => ({ kind: 'early' as const, id: e.id, teacherId: e.teacherId, date: e.date, type: '' as AbsenceType, mins: calcEarlyDepartureMinutes(e) })),
+  ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
+
+  const todayDateLabel = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold text-slate-800">الشاشة الرئيسية</h1>
-        <p className="text-slate-500 text-base mt-1">ملخص سريع لحالة الانضباط</p>
+
+      {/* ── Hero header ─────────────────────────────────────────────────── */}
+      <div className="bg-gradient-to-l from-indigo-600 to-violet-700 rounded-2xl p-6 text-white">
+        <p className="text-indigo-200 text-sm mb-1">{todayDateLabel}</p>
+        <h1 className="text-2xl font-bold">لوحة متابعة الانضباط</h1>
+        <p className="text-indigo-200 text-sm mt-1">{teachers.length} معلم مسجل في النظام</p>
+
+        {/* today quick pills */}
+        <div className="flex flex-wrap gap-3 mt-5">
+          <div className="bg-white/15 rounded-xl px-4 py-2.5 flex items-center gap-2">
+            <CalendarX size={16} className="text-red-300" />
+            <div>
+              <p className="text-xs text-indigo-200">غياب اليوم</p>
+              <p className="font-bold text-lg leading-none">{todayAbsences.length}</p>
+            </div>
+          </div>
+          <div className="bg-white/15 rounded-xl px-4 py-2.5 flex items-center gap-2">
+            <Clock size={16} className="text-amber-300" />
+            <div>
+              <p className="text-xs text-indigo-200">تأخير اليوم</p>
+              <p className="font-bold text-lg leading-none">{todayTardiness.length}</p>
+            </div>
+          </div>
+          <div className="bg-white/15 rounded-xl px-4 py-2.5 flex items-center gap-2">
+            <LogIn size={16} className="text-rose-300" />
+            <div>
+              <p className="text-xs text-indigo-200">انصراف مبكر اليوم</p>
+              <p className="font-bold text-lg leading-none">{todayEarlyDep.length}</p>
+            </div>
+          </div>
+          <div className="bg-white/15 rounded-xl px-4 py-2.5 flex items-center gap-2">
+            <Users size={16} className="text-green-300" />
+            <div>
+              <p className="text-xs text-indigo-200">حاضرون اليوم</p>
+              <p className="font-bold text-lg leading-none">
+                {Math.max(0, teachers.length - todayAbsences.length)}
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
 
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard
-          title="إجمالي المعلمين"
-          value={teachers.length}
-          icon={<Users size={22} className="text-blue-600" />}
-          color="bg-blue-100"
-        />
-        <StatCard
-          title="غياب اليوم"
-          value={todayAbsences.length}
-          icon={<CalendarX size={22} className="text-red-600" />}
-          color="bg-red-100"
-          sub={`${((todayAbsences.length / Math.max(teachers.length, 1)) * 100).toFixed(0)}% من المعلمين`}
-        />
-        <StatCard
-          title="تأخير اليوم"
-          value={todayTardiness.length}
-          icon={<Clock size={22} className="text-yellow-600" />}
-          color="bg-yellow-100"
-          sub={`${todayEarlyDep.length > 0 ? `${todayEarlyDep.length} انصراف مبكر` : ''}`}
-        />
-        <StatCard
-          title="غياب هذا الشهر"
-          value={`${totalAbsenceDays} يوم`}
-          icon={<TrendingUp size={22} className="text-purple-600" />}
-          color="bg-purple-100"
-          sub={`${monthTardiness.length} تأخير · ${monthEarlyDep.length} انصراف مبكر`}
-        />
-      </div>
-
-      {notInFaresCount > 0 && (
+      {/* ── Fares alert ─────────────────────────────────────────────────── */}
+      {notInFares > 0 && (
         <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-          <Circle size={20} className="text-amber-500 shrink-0" />
+          <AlertTriangle size={18} className="text-amber-500 shrink-0" />
           <p className="text-sm text-amber-800">
-            يوجد <strong>{notInFaresCount}</strong> سجل غياب لم يُضف في نظام فارس بعد
+            يوجد <strong>{notInFares}</strong> سجل غياب لم يُضف في نظام فارس بعد
           </p>
         </div>
       )}
 
+      {/* ── Monthly summary cards ────────────────────────────────────────── */}
+      <div>
+        <h2 className="text-base font-bold text-slate-700 mb-3">ملخص الشهر الحالي</h2>
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          {/* Absences */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">الغياب</span>
+              <div className="w-9 h-9 bg-red-100 rounded-xl flex items-center justify-center">
+                <CalendarX size={17} className="text-red-600" />
+              </div>
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-slate-800">{totalAbsDays}</p>
+              <p className="text-xs text-slate-400 mt-0.5">يوم غياب · {monthAbsences.length} سجل</p>
+            </div>
+            <div className="h-1.5 rounded-full bg-red-100 overflow-hidden">
+              <div className="h-full bg-red-500 rounded-full" style={{ width: `${Math.min(100, (totalAbsDays / Math.max(teachers.length * 2, 1)) * 100)}%` }} />
+            </div>
+          </div>
+
+          {/* Tardiness */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">التأخير</span>
+              <div className="w-9 h-9 bg-amber-100 rounded-xl flex items-center justify-center">
+                <Clock size={17} className="text-amber-600" />
+              </div>
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-slate-800">{monthTardiness.length}</p>
+              <p className="text-xs text-slate-400 mt-0.5">حالة · {totalTarMins} دقيقة إجمالاً</p>
+            </div>
+            <div className="h-1.5 rounded-full bg-amber-100 overflow-hidden">
+              <div className="h-full bg-amber-500 rounded-full" style={{ width: `${Math.min(100, (monthTardiness.length / Math.max(teachers.length, 1)) * 100)}%` }} />
+            </div>
+          </div>
+
+          {/* Early departure */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">الانصراف المبكر</span>
+              <div className="w-9 h-9 bg-rose-100 rounded-xl flex items-center justify-center">
+                <LogIn size={17} className="text-rose-600" />
+              </div>
+            </div>
+            <div>
+              <p className="text-3xl font-extrabold text-slate-800">{monthEarlyDep.length}</p>
+              <p className="text-xs text-slate-400 mt-0.5">حالة · {totalEdMins} دقيقة إجمالاً</p>
+            </div>
+            <div className="h-1.5 rounded-full bg-rose-100 overflow-hidden">
+              <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(100, (monthEarlyDep.length / Math.max(teachers.length, 1)) * 100)}%` }} />
+            </div>
+          </div>
+
+          {/* Compliance rate */}
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-semibold text-slate-500 uppercase tracking-wide">نسبة الانتظام</span>
+              <div className="w-9 h-9 bg-green-100 rounded-xl flex items-center justify-center">
+                <Users size={17} className="text-green-600" />
+              </div>
+            </div>
+            <div>
+              {(() => {
+                const pct = teachers.length === 0 ? 100 : Math.max(0, Math.round(100 - (monthAbsences.length / (teachers.length * 22)) * 100));
+                return <>
+                  <p className="text-3xl font-extrabold text-slate-800">{pct}%</p>
+                  <p className="text-xs text-slate-400 mt-0.5">من {teachers.length} معلم</p>
+                  <div className="h-1.5 rounded-full bg-green-100 overflow-hidden mt-3">
+                    <div className="h-full bg-green-500 rounded-full transition-all" style={{ width: `${pct}%` }} />
+                  </div>
+                </>;
+              })()}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* ── Charts row ──────────────────────────────────────────────────── */}
       <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-          <h2 className="font-bold text-slate-800 mb-4">أنواع الغياب</h2>
+        {/* Pie */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
+          <h2 className="font-bold text-slate-800 mb-4">توزيع أنواع الغياب</h2>
           {absenceByType.length > 0 ? (
             <ResponsiveContainer width="100%" height={220}>
               <PieChart>
-                <Pie data={absenceByType} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={80} label={({ name, percent }: { name?: string; percent?: number }) => `${name ?? ''} ${((percent ?? 0) * 100).toFixed(0)}%`}>
-                  {absenceByType.map((entry, i) => <Cell key={i} fill={entry.color} />)}
+                <Pie data={absenceByType} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85}>
+                  {absenceByType.map((e, i) => <Cell key={i} fill={e.color} />)}
                 </Pie>
-                <Tooltip />
+                <Tooltip formatter={(v) => [`${v} سجل`, '']} />
+                <Legend iconType="circle" iconSize={8} />
               </PieChart>
             </ResponsiveContainer>
-          ) : <p className="text-slate-400 text-sm text-center py-8">لا توجد بيانات</p>}
-        </div>
-
-        <div className="bg-white rounded-xl p-5 border border-slate-100 shadow-sm">
-          <h2 className="font-bold text-slate-800 mb-4">أكثر المعلمين غياباً (أيام)</h2>
-          {topAbsent.some(x => x.days > 0) ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <BarChart data={topAbsent} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis type="category" dataKey="name" width={90} tick={{ fontSize: 11 }} />
-                <Tooltip />
-                <Bar dataKey="days" fill="#3b82f6" name="أيام" radius={[0, 4, 4, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          ) : <p className="text-slate-400 text-sm text-center py-8">لا توجد بيانات</p>}
-        </div>
-      </div>
-
-      <div className="grid lg:grid-cols-2 gap-6">
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100">
-            <h2 className="font-bold text-slate-800">آخر حالات الغياب</h2>
-          </div>
-          {absences.length === 0 ? (
-            <p className="p-4 text-sm text-slate-400 text-center">لا توجد سجلات</p>
           ) : (
-            <div className="divide-y divide-slate-50">
-              {[...absences].sort((a, b) => b.startDate.localeCompare(a.startDate)).slice(0, 5).map(a => {
-                const teacher = teachers.find(t => t.id === a.teacherId);
-                return (
-                  <div key={a.id} className="p-3 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{teacher?.name || '—'}</p>
-                      <p className="text-xs text-slate-400">{formatDate(a.startDate)}</p>
-                    </div>
-                    <Badge type={a.type} />
-                  </div>
-                );
-              })}
+            <div className="flex flex-col items-center justify-center h-48 text-slate-300">
+              <CalendarX size={40} />
+              <p className="text-sm mt-2">لا توجد بيانات غياب</p>
             </div>
           )}
         </div>
 
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100">
-            <h2 className="font-bold text-slate-800">آخر حالات التأخير</h2>
+        {/* Recent activity feed */}
+        <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="px-5 py-4 border-b border-slate-100">
+            <h2 className="font-bold text-slate-800">آخر الأحداث</h2>
+            <p className="text-xs text-slate-400 mt-0.5">غياب · تأخير · انصراف مبكر</p>
           </div>
-          {tardiness.length === 0 ? (
-            <p className="p-4 text-sm text-slate-400 text-center">لا توجد سجلات</p>
+          {recentEvents.length === 0 ? (
+            <div className="flex flex-col items-center justify-center h-48 text-slate-300">
+              <Users size={36} />
+              <p className="text-sm mt-2">لا توجد سجلات بعد</p>
+            </div>
           ) : (
             <div className="divide-y divide-slate-50">
-              {[...tardiness].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map(t => {
-                const teacher = teachers.find(x => x.id === t.teacherId);
-                const mins = calcTardinessMinutes(t);
+              {recentEvents.map(ev => {
+                const teacher = teachers.find(t => t.id === ev.teacherId);
+                const isAbsence  = ev.kind === 'absence';
+                const isTardiness = ev.kind === 'tardiness';
+                const isEarly    = ev.kind === 'early';
                 return (
-                  <div key={t.id} className="p-3 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{teacher?.name || '—'}</p>
-                      <p className="text-xs text-slate-400">{formatDate(t.date)}</p>
+                  <div key={ev.kind + ev.id} className="px-5 py-3 flex items-center gap-3">
+                    {/* icon dot */}
+                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center shrink-0 ${isAbsence ? 'bg-red-100' : isTardiness ? 'bg-amber-100' : 'bg-rose-100'}`}>
+                      {isAbsence  && <CalendarX size={14} className="text-red-600" />}
+                      {isTardiness && <Clock     size={14} className="text-amber-600" />}
+                      {isEarly    && <LogIn     size={14} className="text-rose-600" />}
                     </div>
-                    <span className={`text-xs font-semibold px-2 py-1 rounded-full ${mins >= 30 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                      +{mins} دقيقة
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-semibold text-slate-800 truncate">{teacher?.name || '—'}</p>
+                      <p className="text-xs text-slate-400">{formatDate(ev.date)}</p>
+                    </div>
+                    <div className="shrink-0">
+                      {isAbsence  && <Badge type={ev.type} />}
+                      {isTardiness && <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ev.mins >= 30 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>+{ev.mins} د</span>}
+                      {isEarly    && <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">{ev.mins} د مبكراً</span>}
+                    </div>
                   </div>
                 );
               })}
@@ -167,51 +238,6 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* Early departure summary + list */}
-      <div className="grid lg:grid-cols-2 gap-6">
-        {/* Monthly summary card */}
-        <div className="bg-rose-50 border border-rose-100 rounded-xl p-5 flex items-center gap-4">
-          <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center shrink-0">
-            <LogIn size={22} className="text-rose-600" />
-          </div>
-          <div>
-            <p className="text-sm text-rose-500 font-medium">الانصراف المبكر هذا الشهر</p>
-            <p className="text-2xl font-bold text-rose-700 mt-0.5">{monthEarlyDep.length} حالة</p>
-            <p className="text-xs text-rose-400 mt-0.5">
-              إجمالي {monthEdMins} دقيقة
-              {todayEarlyDep.length > 0 && ` · اليوم: ${todayEarlyDep.length} حالة`}
-            </p>
-          </div>
-        </div>
-
-        {/* Latest early departures */}
-        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
-          <div className="p-4 border-b border-slate-100">
-            <h2 className="font-bold text-slate-800">آخر حالات الانصراف المبكر</h2>
-          </div>
-          {earlyDepartures.length === 0 ? (
-            <p className="p-4 text-sm text-slate-400 text-center">لا توجد سجلات</p>
-          ) : (
-            <div className="divide-y divide-slate-50">
-              {[...earlyDepartures].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map(e => {
-                const teacher = teachers.find(x => x.id === e.teacherId);
-                const mins = calcEarlyDepartureMinutes(e);
-                return (
-                  <div key={e.id} className="p-3 flex items-center justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-medium truncate">{teacher?.name || '—'}</p>
-                      <p className="text-xs text-slate-400">{formatDate(e.date)}</p>
-                    </div>
-                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-rose-100 text-rose-700">
-                      {mins} دقيقة
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </div>
-      </div>
     </div>
   );
 }
