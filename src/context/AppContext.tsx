@@ -63,8 +63,8 @@ interface AppContextType {
   addTardiness: (t: Omit<Tardiness, 'id' | 'createdAt'>) => void;
   updateTardiness: (id: string, t: Partial<Tardiness>) => void;
   deleteTardiness: (id: string) => void;
-  addEarlyDeparture: (e: Omit<EarlyDeparture, 'id' | 'createdAt'>) => void;
-  updateEarlyDeparture: (id: string, e: Partial<EarlyDeparture>) => void;
+  addEarlyDeparture: (e: Omit<EarlyDeparture, 'id' | 'createdAt'>) => Promise<string | null>;
+  updateEarlyDeparture: (id: string, e: Partial<EarlyDeparture>) => Promise<string | null>;
   deleteEarlyDeparture: (id: string) => void;
   markNotificationRead: (id: string) => void;
   updateSettings: (s: Partial<AppSettings>) => void;
@@ -224,17 +224,23 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // ── Early Departures ──────────────────────────────────────────────────────
-  const addEarlyDeparture = useCallback((e: Omit<EarlyDeparture, 'id' | 'createdAt'>) => {
+  const addEarlyDeparture = useCallback(async (e: Omit<EarlyDeparture, 'id' | 'createdAt'>): Promise<string | null> => {
     const record: EarlyDeparture = { ...e, id: generateId(), createdAt: new Date().toISOString() };
     setEarlyDepartures(prev => [...prev, record]);
-    supabase.from('early_departures').insert({
+    const { error } = await supabase.from('early_departures').insert({
       id: record.id, teacher_id: record.teacherId, date: record.date,
       scheduled_end_time: record.scheduledEndTime, actual_departure_time: record.actualDepartureTime,
       notes: record.notes, created_at: record.createdAt,
-    }).then(({ error }) => { if (error) console.error(error); });
+    });
+    if (error) {
+      console.error('addEarlyDeparture error:', error);
+      setEarlyDepartures(prev => prev.filter(x => x.id !== record.id));
+      return error.message;
+    }
+    return null;
   }, []);
 
-  const updateEarlyDeparture = useCallback((id: string, e: Partial<EarlyDeparture>) => {
+  const updateEarlyDeparture = useCallback(async (id: string, e: Partial<EarlyDeparture>): Promise<string | null> => {
     setEarlyDepartures(prev => prev.map(x => x.id === id ? { ...x, ...e } : x));
     const u: Record<string, unknown> = {};
     if (e.teacherId           !== undefined) u.teacher_id           = e.teacherId;
@@ -242,8 +248,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (e.scheduledEndTime    !== undefined) u.scheduled_end_time   = e.scheduledEndTime;
     if (e.actualDepartureTime !== undefined) u.actual_departure_time = e.actualDepartureTime;
     if (e.notes               !== undefined) u.notes                = e.notes;
-    supabase.from('early_departures').update(u).eq('id', id)
-      .then(({ error }) => { if (error) console.error(error); });
+    const { error } = await supabase.from('early_departures').update(u).eq('id', id);
+    if (error) {
+      console.error('updateEarlyDeparture error:', error);
+      return error.message;
+    }
+    return null;
   }, []);
 
   const deleteEarlyDeparture = useCallback((id: string) => {

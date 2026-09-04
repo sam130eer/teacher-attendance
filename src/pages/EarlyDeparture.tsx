@@ -223,6 +223,8 @@ export default function EarlyDeparturePage() {
   const [editing, setEditing]             = useState<EarlyDeparture | null>(null);
   const [form, setForm]                   = useState({ ...empty, scheduledEndTime: settings.defaultScheduledTime || '14:00' });
   const [errors, setErrors]               = useState<Record<string, string>>({});
+  const [saveError, setSaveError]         = useState<string | null>(null);
+  const [saving, setSaving]               = useState(false);
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const sorted = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
@@ -268,12 +270,17 @@ export default function EarlyDeparturePage() {
     return e;
   }
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     const errs = validate();
     if (Object.keys(errs).length) { setErrors(errs); return; }
-    if (editing) updateEarlyDeparture(editing.id, form);
-    else addEarlyDeparture(form);
+    setSaving(true);
+    setSaveError(null);
+    const err = editing
+      ? await updateEarlyDeparture(editing.id, form)
+      : await addEarlyDeparture(form);
+    setSaving(false);
+    if (err) { setSaveError(err); return; }
     setShowModal(false);
   }
 
@@ -453,9 +460,14 @@ export default function EarlyDeparturePage() {
                 onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
                 className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
+            {saveError && (
+              <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 break-words">
+                <strong>خطأ في الحفظ:</strong> {saveError}
+              </div>
+            )}
             <div className="flex gap-3 pt-2">
-              <button type="submit" className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-base font-medium hover:bg-indigo-700">
-                {editing ? 'حفظ التعديلات' : 'إضافة'}
+              <button type="submit" disabled={saving} className="flex-1 bg-indigo-600 text-white py-2.5 rounded-xl text-base font-medium hover:bg-indigo-700 disabled:opacity-60">
+                {saving ? 'جاري الحفظ...' : (editing ? 'حفظ التعديلات' : 'إضافة')}
               </button>
               <button type="button" onClick={() => setShowModal(false)} className="flex-1 border border-slate-200 py-2.5 rounded-xl text-sm hover:bg-slate-50">
                 إلغاء
