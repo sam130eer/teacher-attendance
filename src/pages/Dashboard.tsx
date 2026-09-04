@@ -1,8 +1,8 @@
-import { Users, CalendarX, Clock, TrendingUp, Circle } from 'lucide-react';
+import { Users, CalendarX, Clock, TrendingUp, Circle, LogIn } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import StatCard from '../components/UI/StatCard';
 import Badge from '../components/UI/Badge';
-import { calcAbsenceDays, calcTardinessMinutes, formatDate, getTodayStr, getCurrentMonthRange } from '../utils/helpers';
+import { calcAbsenceDays, calcTardinessMinutes, calcEarlyDepartureMinutes, formatDate, getTodayStr, getCurrentMonthRange } from '../utils/helpers';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
@@ -10,18 +10,21 @@ import type { AbsenceType } from '../types';
 import { ABSENCE_COLORS, ABSENCE_TYPES } from '../types';
 
 export default function Dashboard() {
-  const { teachers, absences, tardiness } = useApp();
+  const { teachers, absences, tardiness, earlyDepartures } = useApp();
   const today = getTodayStr();
   const { from, to } = getCurrentMonthRange();
 
-  const todayAbsences = absences.filter(a => a.startDate <= today && a.endDate >= today);
-  const todayTardiness = tardiness.filter(t => t.date === today);
+  const todayAbsences   = absences.filter(a => a.startDate <= today && a.endDate >= today);
+  const todayTardiness  = tardiness.filter(t => t.date === today);
+  const todayEarlyDep   = earlyDepartures.filter(e => e.date === today);
 
-  const monthAbsences = absences.filter(a => a.startDate >= from && a.startDate <= to);
-  const monthTardiness = tardiness.filter(t => t.date >= from && t.date <= to);
+  const monthAbsences   = absences.filter(a => a.startDate >= from && a.startDate <= to);
+  const monthTardiness  = tardiness.filter(t => t.date >= from && t.date <= to);
+  const monthEarlyDep   = earlyDepartures.filter(e => e.date >= from && e.date <= to);
 
-  const totalAbsenceDays = monthAbsences.reduce((s, a) => s + calcAbsenceDays(a), 0);
-  const notInFaresCount = absences.filter(a => !a.addedInFares).length;
+  const totalAbsenceDays  = monthAbsences.reduce((s, a) => s + calcAbsenceDays(a), 0);
+  const monthEdMins       = monthEarlyDep.reduce((s, e) => s + calcEarlyDepartureMinutes(e), 0);
+  const notInFaresCount   = absences.filter(a => !a.addedInFares).length;
 
   const absenceByType = Object.entries(ABSENCE_TYPES).map(([type, name]) => ({
     name,
@@ -60,13 +63,14 @@ export default function Dashboard() {
           value={todayTardiness.length}
           icon={<Clock size={22} className="text-yellow-600" />}
           color="bg-yellow-100"
+          sub={`${todayEarlyDep.length > 0 ? `${todayEarlyDep.length} انصراف مبكر` : ''}`}
         />
         <StatCard
           title="غياب هذا الشهر"
           value={`${totalAbsenceDays} يوم`}
           icon={<TrendingUp size={22} className="text-purple-600" />}
           color="bg-purple-100"
-          sub={`${monthTardiness.length} حالة تأخير`}
+          sub={`${monthTardiness.length} تأخير · ${monthEarlyDep.length} انصراف مبكر`}
         />
       </div>
 
@@ -154,6 +158,52 @@ export default function Dashboard() {
                     </div>
                     <span className={`text-xs font-semibold px-2 py-1 rounded-full ${mins >= 30 ? 'bg-red-100 text-red-700' : 'bg-yellow-100 text-yellow-700'}`}>
                       +{mins} دقيقة
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Early departure summary + list */}
+      <div className="grid lg:grid-cols-2 gap-6">
+        {/* Monthly summary card */}
+        <div className="bg-rose-50 border border-rose-100 rounded-xl p-5 flex items-center gap-4">
+          <div className="w-12 h-12 bg-rose-100 rounded-2xl flex items-center justify-center shrink-0">
+            <LogIn size={22} className="text-rose-600" />
+          </div>
+          <div>
+            <p className="text-sm text-rose-500 font-medium">الانصراف المبكر هذا الشهر</p>
+            <p className="text-2xl font-bold text-rose-700 mt-0.5">{monthEarlyDep.length} حالة</p>
+            <p className="text-xs text-rose-400 mt-0.5">
+              إجمالي {monthEdMins} دقيقة
+              {todayEarlyDep.length > 0 && ` · اليوم: ${todayEarlyDep.length} حالة`}
+            </p>
+          </div>
+        </div>
+
+        {/* Latest early departures */}
+        <div className="bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden">
+          <div className="p-4 border-b border-slate-100">
+            <h2 className="font-bold text-slate-800">آخر حالات الانصراف المبكر</h2>
+          </div>
+          {earlyDepartures.length === 0 ? (
+            <p className="p-4 text-sm text-slate-400 text-center">لا توجد سجلات</p>
+          ) : (
+            <div className="divide-y divide-slate-50">
+              {[...earlyDepartures].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 5).map(e => {
+                const teacher = teachers.find(x => x.id === e.teacherId);
+                const mins = calcEarlyDepartureMinutes(e);
+                return (
+                  <div key={e.id} className="p-3 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="text-sm font-medium truncate">{teacher?.name || '—'}</p>
+                      <p className="text-xs text-slate-400">{formatDate(e.date)}</p>
+                    </div>
+                    <span className="text-xs font-semibold px-2 py-1 rounded-full bg-rose-100 text-rose-700">
+                      {mins} دقيقة
                     </span>
                   </div>
                 );
