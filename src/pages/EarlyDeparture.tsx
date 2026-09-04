@@ -14,6 +14,7 @@ function sendWhatsApp(phone: string, msg: string) {
 
 export default function EarlyDeparturePage() {
   const { teachers, earlyDepartures, settings, addEarlyDeparture, updateEarlyDeparture, deleteEarlyDeparture } = useApp();
+  const weekSchedule = settings.weekSchedule ?? {};
 
   const [search, setSearch]         = useState('');
   const [filterTeacher, setFilterTeacher] = useState('');
@@ -34,9 +35,16 @@ export default function EarlyDeparturePage() {
     })
     .sort((a, b) => b.date.localeCompare(a.date));
 
+  function getScheduledEndForDate(dateStr: string): string {
+    if (!dateStr) return '14:00';
+    const day = new Date(dateStr).getDay().toString();
+    return weekSchedule[day] || '14:00';
+  }
+
   function openAdd() {
     setEditing(null);
-    setForm({ ...empty, scheduledEndTime: '14:00' });
+    const today = getTodayStr();
+    setForm({ ...empty, scheduledEndTime: getScheduledEndForDate(today) });
     setErrors({});
     setShowModal(true);
   }
@@ -214,7 +222,7 @@ export default function EarlyDeparturePage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">التاريخ</label>
               <input type="date" value={form.date}
-                onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
+                onChange={e => setForm(f => ({ ...f, date: e.target.value, scheduledEndTime: getScheduledEndForDate(e.target.value) }))}
                 className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.date ? 'border-red-400' : 'border-slate-300'}`} />
               {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
             </div>

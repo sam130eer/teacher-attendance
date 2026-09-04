@@ -3,16 +3,30 @@ import type { Teacher, Absence, Tardiness, EarlyDeparture, Notification } from '
 import { generateId } from '../utils/helpers';
 import { supabase } from '../lib/supabase';
 
+export type WeekSchedule = Record<string, string>; // key = day index '0'(Sun)–'6'(Sat)
+
+export const DEFAULT_WEEK_SCHEDULE: WeekSchedule = {
+  '0': '14:30', // الأحد
+  '1': '14:30', // الاثنين
+  '2': '14:30', // الثلاثاء
+  '3': '14:30', // الأربعاء
+  '4': '14:30', // الخميس
+  '5': '',       // الجمعة
+  '6': '',       // السبت
+};
+
 export interface AppSettings {
   defaultScheduledTime: string;
   schoolName: string;
   principalName: string;
+  weekSchedule: WeekSchedule;
 }
 
 export const DEFAULT_SETTINGS: AppSettings = {
   defaultScheduledTime: '07:30',
   schoolName: 'المدرسة',
   principalName: '',
+  weekSchedule: DEFAULT_WEEK_SCHEDULE,
 };
 
 // DB row → app type mappers
@@ -85,7 +99,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (tard.data) setTardiness(tard.data.map(mapTardiness));
         if (ed.data)   setEarlyDepartures(ed.data.map(mapEarlyDeparture));
         if (n.data)    setNotifications(n.data.map(mapNotification));
-        if (s.data)    setSettings({ schoolName: s.data.school_name, defaultScheduledTime: s.data.default_scheduled_time, principalName: (s.data.principal_name as string) ?? '' });
+        if (s.data) {
+          let weekSchedule = DEFAULT_WEEK_SCHEDULE;
+          try {
+            const stored = localStorage.getItem('week_schedule');
+            if (stored) weekSchedule = JSON.parse(stored);
+          } catch { /* ignore */ }
+          setSettings({ schoolName: s.data.school_name, defaultScheduledTime: s.data.default_scheduled_time, principalName: (s.data.principal_name as string) ?? '', weekSchedule });
+        }
       } catch (err) {
         console.error('Supabase load error:', err);
       } finally {
@@ -241,12 +262,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // ── Settings ──────────────────────────────────────────────────────────────
   const updateSettings = useCallback((s: Partial<AppSettings>) => {
     setSettings(prev => ({ ...prev, ...s }));
+    if (s.weekSchedule !== undefined) {
+      try { localStorage.setItem('week_schedule', JSON.stringify(s.weekSchedule)); } catch { /* ignore */ }
+    }
     const u: Record<string, unknown> = {};
     if (s.schoolName           !== undefined) u.school_name            = s.schoolName;
     if (s.defaultScheduledTime !== undefined) u.default_scheduled_time = s.defaultScheduledTime;
     if (s.principalName        !== undefined) u.principal_name         = s.principalName;
-    supabase.from('app_settings').update(u).eq('id', 1)
-      .then(({ error }) => { if (error) console.error(error); });
+    if (Object.keys(u).length > 0) {
+      supabase.from('app_settings').update(u).eq('id', 1)
+        .then(({ error }) => { if (error) console.error(error); });
+    }
   }, []);
 
   const unreadCount = notifications.filter(n => !n.isRead).length;
