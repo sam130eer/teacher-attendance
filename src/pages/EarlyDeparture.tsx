@@ -116,7 +116,7 @@ function buildForm18HTML(
   </div>
   <div class="ref">
     <div>الرقم :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-    <div>التاريخ :&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;14&nbsp;&nbsp;&nbsp;هـ</div>
+    <div>التاريخ : ${hijriDate(new Date().toISOString().split('T')[0])}هـ</div>
     <div>المشفوعات :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
     <div>مدرسة : ${schoolName}</div>
   </div>
@@ -166,14 +166,12 @@ function buildForm18HTML(
 <div class="body-line">السلام عليكم ورحمة الله وبركاته وبعد:</div>
 <div class="body-line">إنه في يوم <strong>${day}</strong> الموافق <strong>${hDate}</strong>هـ&nbsp; اتضح ما يلي:</div>
 
-<div class="violation-normal">تأخركم من بداية العمل ، وحضوركم الساعة (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
-<div class="violation-normal">عدم تواجدكم أثناء العمل من الساعة (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) إلى الساعة (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
 <div class="violation-box">انصرافكم مبكراً قبل نهاية العمل من الساعة ( <strong>${fmtTime12(r.actualDepartureTime)}</strong> ) والوقت المقرر ( <strong>${fmtTime12(r.scheduledEndTime)}</strong> )</div>
 
 <div class="req">عليه نأمل توضيح أسباب ذلك مع إرفاق ما يؤيد عذركم ،،، ولكم تحياتي</div>
 
 <div class="sig-row">
-  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;1448هـ</div>
+  <div class="sig-item">التاريخ : ${hijriDate(new Date().toISOString().split('T')[0])}هـ</div>
   <div class="sig-item">التوقيع <span class="sig-line"></span></div>
   <div class="sig-item">مدير المدرسة : <strong>${principalName || '________________'}</strong></div>
 </div>
@@ -189,7 +187,7 @@ function buildForm18HTML(
 <div class="dot-line"></div>
 
 <div class="sig-row" style="justify-content:space-between;margin-top:8px;">
-  <div class="sig-item">الاسم <span class="sig-line"></span></div>
+  <div class="sig-item">الاسم : <strong>${teacher.name}</strong></div>
   <div class="sig-item">التوقيع <span class="sig-line"></span></div>
   <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;1448هـ</div>
 </div>
