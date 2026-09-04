@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { Plus, Search, Edit2, Trash2, LogOut, MessageCircle } from 'lucide-react';
+import { Plus, Search, Edit2, Trash2, LogOut, MessageCircle, Printer } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Modal from '../components/UI/Modal';
-import type { EarlyDeparture } from '../types';
+import type { EarlyDeparture, Teacher } from '../types';
 import { calcEarlyDepartureMinutes, formatDate, formatTime, getTodayStr } from '../utils/helpers';
 
 const empty = { teacherId: '', date: getTodayStr(), scheduledEndTime: '14:00', actualDepartureTime: '', notes: '' };
@@ -12,16 +12,219 @@ function sendWhatsApp(phone: string, msg: string) {
   window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
+function fmtTime12(t: string) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'م' : 'ص';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function hijriDate(dateStr: string) {
+  try {
+    return new Date(dateStr).toLocaleDateString('ar-SA-u-ca-islamic', { day: 'numeric', month: 'numeric', year: 'numeric' });
+  } catch { return dateStr; }
+}
+
+function dayName(dateStr: string) {
+  try {
+    return new Date(dateStr).toLocaleDateString('ar-SA', { weekday: 'long' });
+  } catch { return ''; }
+}
+
+function buildForm18HTML(
+  teacher: Teacher,
+  r: EarlyDeparture,
+  schoolName: string,
+  principalName: string,
+  origin: string,
+) {
+  const hDate = hijriDate(r.date);
+  const day   = dayName(r.date);
+
+  return `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>نموذج مساءلة - ${teacher.name}</title>
+<style>
+  @page { size: A4 portrait; margin: 1.2cm 1.5cm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Tahoma, sans-serif; font-size: 10pt; direction: rtl; color: #000; background: #fff; }
+
+  /* ─── Header ─── */
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #000; padding-bottom: 8px; margin-bottom: 6px; }
+  .gov { font-size: 9pt; line-height: 2; text-align: right; }
+  .logo { text-align: center; }
+  .logo img { height: 80px; }
+  .ref { font-size: 8.5pt; line-height: 2; text-align: left; }
+
+  /* ─── Form title bar ─── */
+  .title-bar { display: flex; justify-content: space-between; background: #c0c0c0; border: 1px solid #000; padding: 4px 8px; margin-bottom: 0; font-weight: bold; font-size: 9.5pt; }
+
+  /* ─── Info rows ─── */
+  .info-row { display: flex; border: 1px solid #000; border-top: none; }
+  .info-label { background: #c0c0c0; font-weight: bold; padding: 4px 8px; min-width: 90px; border-left: 1px solid #000; font-size: 9pt; white-space: nowrap; }
+  .info-val { padding: 4px 8px; flex: 1; font-size: 9.5pt; }
+
+  /* ─── Teacher table ─── */
+  .t-tbl { width: 100%; border-collapse: collapse; border: 1px solid #000; border-top: none; margin-bottom: 10px; }
+  .t-tbl th { background: #c0c0c0; border: 1px solid #000; padding: 4px 6px; font-size: 8.5pt; font-weight: bold; text-align: center; }
+  .t-tbl td { border: 1px solid #000; padding: 4px 6px; font-size: 9pt; text-align: center; }
+
+  /* ─── Body ─── */
+  .salutation { margin: 6px 0 4px; font-size: 10pt; }
+  .body-line  { margin: 3px 0; font-size: 9.5pt; line-height: 1.7; }
+  .violation-box { border: 1.5px solid #000; background: #f0f0f0; padding: 5px 10px; margin: 4px 0; font-size: 10pt; font-weight: bold; }
+  .violation-normal { border: 1px solid #ccc; padding: 4px 10px; margin: 3px 0; font-size: 9.5pt; color: #555; }
+  .req { margin: 8px 0 4px; font-size: 9.5pt; }
+
+  /* ─── Signatures ─── */
+  .sig-row { display: flex; justify-content: flex-end; gap: 40px; margin: 6px 0; font-size: 9pt; }
+  .sig-item { display: flex; gap: 6px; align-items: center; }
+  .sig-line { display: inline-block; border-bottom: 1px solid #000; width: 120px; }
+
+  /* ─── Divider ─── */
+  .divider { border: none; border-top: 1.5px dashed #555; margin: 10px 0; }
+
+  /* ─── Reply section ─── */
+  .reply-label { font-size: 9.5pt; margin: 4px 0; }
+  .dot-line { border-bottom: 1px dotted #000; min-height: 16px; margin: 6px 0; }
+
+  /* ─── Decision ─── */
+  .decision-row { display: flex; align-items: center; gap: 16px; font-size: 9.5pt; margin: 6px 0; }
+  .checkbox { display: inline-flex; align-items: center; gap: 4px; }
+  .checkbox-box { width: 12px; height: 12px; border: 1.5px solid #000; display: inline-block; }
+
+  /* ─── Note ─── */
+  .note { font-size: 8pt; color: #444; margin-top: 8px; border-top: 1px solid #ccc; padding-top: 4px; }
+
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <div class="gov">
+    <div>المملكة العربية السعودية</div>
+    <div>وزارة التعليم</div>
+    <div>الإدارة العامة للتعليم بالمنطقة الشرقية</div>
+  </div>
+  <div class="logo">
+    <img src="${origin}/ministry-logo.png" alt="شعار" onerror="this.style.display='none'" />
+  </div>
+  <div class="ref">
+    <div>الرقم :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+    <div>التاريخ :&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;/&nbsp;&nbsp;&nbsp;&nbsp;14&nbsp;&nbsp;&nbsp;هـ</div>
+    <div>المشفوعات :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+    <div>مدرسة : ${schoolName}</div>
+  </div>
+</div>
+
+<!-- Form title -->
+<div class="title-bar">
+  <span>اسم النموذج : مساءلة على تأخر / انصراف</span>
+  <span>نموذج رقم ( 18 )</span>
+</div>
+<div class="title-bar" style="background:#e8e8e8;font-weight:normal;font-size:9pt;">
+  <span>رمز النموذج ( : و.م.ع.ن ) 02 - 02 - .</span>
+</div>
+
+<!-- School -->
+<div class="info-row">
+  <div class="info-label">المدرسة</div>
+  <div class="info-val">${schoolName}</div>
+</div>
+
+<!-- National ID -->
+<div class="info-row">
+  <div class="info-label">السجل المدني</div>
+  <div class="info-val">${teacher.nationalId}</div>
+</div>
+
+<!-- Teacher info table -->
+<table class="t-tbl">
+  <tr>
+    <th>الاسم</th>
+    <th>التخصص</th>
+    <th>المستوى / الرتبة</th>
+    <th>رقم الوظيفة</th>
+    <th>العمل الحالي</th>
+  </tr>
+  <tr>
+    <td>${teacher.name}</td>
+    <td>${teacher.specialty}</td>
+    <td></td>
+    <td></td>
+    <td>معلم</td>
+  </tr>
+</table>
+
+<!-- Body -->
+<div class="salutation">المكرم المعلم / <strong>${teacher.name}</strong> &nbsp;.وفقه الله</div>
+<div class="body-line">السلام عليكم ورحمة الله وبركاته وبعد:</div>
+<div class="body-line">إنه في يوم <strong>${day}</strong> الموافق <strong>${hDate}</strong>هـ&nbsp; اتضح ما يلي:</div>
+
+<div class="violation-normal">تأخركم من بداية العمل ، وحضوركم الساعة (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
+<div class="violation-normal">عدم تواجدكم أثناء العمل من الساعة (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;) إلى الساعة (&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;)</div>
+<div class="violation-box">انصرافكم مبكراً قبل نهاية العمل من الساعة ( <strong>${fmtTime12(r.actualDepartureTime)}</strong> ) والوقت المقرر ( <strong>${fmtTime12(r.scheduledEndTime)}</strong> )</div>
+
+<div class="req">عليه نأمل توضيح أسباب ذلك مع إرفاق ما يؤيد عذركم ،،، ولكم تحياتي</div>
+
+<div class="sig-row">
+  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;1448هـ</div>
+  <div class="sig-item">التوقيع <span class="sig-line"></span></div>
+  <div class="sig-item">مدير المدرسة : <strong>${principalName || '________________'}</strong></div>
+</div>
+
+<hr class="divider">
+
+<!-- Teacher response -->
+<div class="reply-label">المكرم / مدير مدرسة <strong>${schoolName}</strong>&nbsp;&nbsp;وفقه الله</div>
+<div class="body-line">السلام عليكم ورحمة الله وبركاته</div>
+<div class="body-line">أفيدكم أن أسباب ذلك ما يلي:</div>
+<div class="dot-line"></div>
+<div class="dot-line"></div>
+<div class="dot-line"></div>
+
+<div class="sig-row" style="justify-content:space-between;margin-top:8px;">
+  <div class="sig-item">الاسم <span class="sig-line"></span></div>
+  <div class="sig-item">التوقيع <span class="sig-line"></span></div>
+  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;1448هـ</div>
+</div>
+
+<hr class="divider">
+
+<!-- Decision -->
+<div class="decision-row">
+  <span>رأي مدير المدرسة</span>
+  <span class="checkbox"><span class="checkbox-box"></span> عذره مقبول</span>
+  <span class="checkbox"><span class="checkbox-box"></span> عذره غير مقبول ويحسم عليه</span>
+</div>
+
+<div class="sig-row">
+  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;1448هـ</div>
+  <div class="sig-item">التوقيع <span class="sig-line"></span></div>
+  <div class="sig-item">مدير المدرسة : <strong>${principalName || '________________'}</strong></div>
+</div>
+
+<div class="note">ملاحظة : ترفق بطاقة المساءلة مع أصل القرار في حالة عدم قبول العذر لحفظها بملفه بالإدارة ، وأصله لملفه بالمدرسة</div>
+
+</body>
+</html>`;
+}
+
 export default function EarlyDeparturePage() {
   const { teachers, earlyDepartures, settings, addEarlyDeparture, updateEarlyDeparture, deleteEarlyDeparture } = useApp();
   const weekSchedule = settings.weekSchedule ?? {};
 
-  const [search, setSearch]         = useState('');
+  const [search, setSearch]               = useState('');
   const [filterTeacher, setFilterTeacher] = useState('');
-  const [showModal, setShowModal]   = useState(false);
-  const [editing, setEditing]       = useState<EarlyDeparture | null>(null);
-  const [form, setForm]             = useState({ ...empty, scheduledEndTime: settings.defaultScheduledTime || '14:00' });
-  const [errors, setErrors]         = useState<Record<string, string>>({});
+  const [showModal, setShowModal]         = useState(false);
+  const [editing, setEditing]             = useState<EarlyDeparture | null>(null);
+  const [form, setForm]                   = useState({ ...empty, scheduledEndTime: settings.defaultScheduledTime || '14:00' });
+  const [errors, setErrors]               = useState<Record<string, string>>({});
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null);
 
   const sorted = [...teachers].sort((a, b) => a.name.localeCompare(b.name, 'ar'));
@@ -29,7 +232,7 @@ export default function EarlyDeparturePage() {
   const filtered = earlyDepartures
     .filter(r => {
       const teacher = teachers.find(t => t.id === r.teacherId);
-      const matchName = !search || teacher?.name.includes(search);
+      const matchName    = !search        || teacher?.name.includes(search);
       const matchTeacher = !filterTeacher || r.teacherId === filterTeacher;
       return matchName && matchTeacher;
     })
@@ -76,14 +279,25 @@ export default function EarlyDeparturePage() {
     setShowModal(false);
   }
 
+  function handlePrint(r: EarlyDeparture) {
+    const teacher = teachers.find(t => t.id === r.teacherId);
+    if (!teacher) return;
+    const html = buildForm18HTML(teacher, r, settings.schoolName, settings.principalName, window.location.origin);
+    const win = window.open('', '_blank', 'width=860,height=700');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 500);
+    }
+  }
+
   function handleWhatsApp(r: EarlyDeparture) {
     const teacher = teachers.find(t => t.id === r.teacherId);
     if (!teacher?.phone) return;
-    const mins = calcEarlyDepartureMinutes(r);
-    const totalMins = earlyDepartures
-      .filter(x => x.teacherId === r.teacherId)
-      .reduce((s, x) => s + calcEarlyDepartureMinutes(x), 0);
-    const times = earlyDepartures.filter(x => x.teacherId === r.teacherId).length;
+    const mins      = calcEarlyDepartureMinutes(r);
+    const totalMins = earlyDepartures.filter(x => x.teacherId === r.teacherId).reduce((s, x) => s + calcEarlyDepartureMinutes(x), 0);
+    const times     = earlyDepartures.filter(x => x.teacherId === r.teacherId).length;
     const msg = `معلمنا الفاضل ${teacher.name} حفظه الله،\nنود إشعاركم بأنه تم تسجيل انصرافكم المبكر بتاريخ ${r.date} بمقدار (${mins}) دقيقة.\n\nإجمالي الانصراف المبكر المسجل عليكم حتى الآن:\n• عدد المرات: ${times} مرة\n• إجمالي الدقائق: ${totalMins} دقيقة\n\nنرجو الالتزام بوقت الانصراف المقرر، وفقكم الله.`;
     sendWhatsApp(teacher.phone, msg);
   }
@@ -111,19 +325,13 @@ export default function EarlyDeparturePage() {
       <div className="flex gap-3 flex-wrap">
         <div className="relative flex-1 min-w-48">
           <Search size={15} className="absolute top-3 right-3 text-slate-400" />
-          <input
-            type="text"
-            placeholder="بحث بالاسم..."
-            value={search}
+          <input type="text" placeholder="بحث بالاسم..." value={search}
             onChange={e => setSearch(e.target.value)}
             className="w-full border border-slate-200 rounded-xl pr-9 pl-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm"
           />
         </div>
-        <select
-          value={filterTeacher}
-          onChange={e => setFilterTeacher(e.target.value)}
-          className="border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm"
-        >
+        <select value={filterTeacher} onChange={e => setFilterTeacher(e.target.value)}
+          className="border border-slate-200 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 bg-white shadow-sm">
           <option value="">كل المعلمين</option>
           {sorted.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
         </select>
@@ -169,6 +377,10 @@ export default function EarlyDeparturePage() {
                       <td className="px-4 py-3 text-slate-500 max-w-40 truncate">{r.notes || '—'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
+                          <button onClick={() => handlePrint(r)} title="طباعة نموذج المساءلة"
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                            <Printer size={14} />
+                          </button>
                           {teacher?.phone && (
                             <button onClick={() => handleWhatsApp(r)} title="واتساب"
                               className="p-1.5 text-slate-400 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors">
@@ -209,11 +421,8 @@ export default function EarlyDeparturePage() {
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">المعلم</label>
-              <select
-                value={form.teacherId}
-                onChange={e => setForm(f => ({ ...f, teacherId: e.target.value }))}
-                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.teacherId ? 'border-red-400' : 'border-slate-300'}`}
-              >
+              <select value={form.teacherId} onChange={e => setForm(f => ({ ...f, teacherId: e.target.value }))}
+                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.teacherId ? 'border-red-400' : 'border-slate-300'}`}>
                 <option value="">-- اختر المعلم --</option>
                 {sorted.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
