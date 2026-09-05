@@ -182,7 +182,7 @@ export default function Dashboard() {
       <div className="grid lg:grid-cols-2 gap-6">
         {/* Absence types breakdown */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h2 className="font-bold text-slate-800 mb-4">مجاميع أنواع الغياب</h2>
+          <h2 className="font-bold text-slate-800 mb-4">أنواع الغياب</h2>
           {absenceByType.length > 0 ? (
             <div className="space-y-3">
               {absenceByType.map(item => (
