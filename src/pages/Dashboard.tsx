@@ -2,7 +2,6 @@ import { Users, CalendarX, Clock, LogIn, AlertTriangle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Badge from '../components/UI/Badge';
 import { calcAbsenceDays, calcTardinessMinutes, calcEarlyDepartureMinutes, formatDate, getTodayStr, getCurrentMonthRange } from '../utils/helpers';
-import { ResponsiveContainer, PieChart, Pie, Cell, Tooltip, Legend } from 'recharts';
 import type { AbsenceType } from '../types';
 import { ABSENCE_COLORS, ABSENCE_TYPES } from '../types';
 
@@ -24,11 +23,18 @@ export default function Dashboard() {
   const totalEdMins  = monthEarlyDep.reduce((s, e) => s + calcEarlyDepartureMinutes(e), 0);
   const notInFares   = absences.filter(a => !a.addedInFares).length;
 
-  const absenceByType = Object.entries(ABSENCE_TYPES).map(([type, name]) => ({
-    name,
-    value: absences.filter(a => a.type === type).length,
-    color: ABSENCE_COLORS[type as AbsenceType],
-  })).filter(x => x.value > 0);
+  const absenceByType = Object.entries(ABSENCE_TYPES).map(([type, name]) => {
+    const list = absences.filter(a => a.type === type);
+    return {
+      type: type as AbsenceType,
+      name,
+      count: list.length,
+      days: list.reduce((s, a) => s + calcAbsenceDays(a), 0),
+      color: ABSENCE_COLORS[type as AbsenceType],
+    };
+  }).filter(x => x.count > 0).sort((a, b) => b.days - a.days);
+
+  const maxDays = absenceByType[0]?.days || 1;
 
   // latest 6 events merged & sorted
   const recentEvents = [
@@ -174,19 +180,29 @@ export default function Dashboard() {
 
       {/* ── Charts row ──────────────────────────────────────────────────── */}
       <div className="grid lg:grid-cols-2 gap-6">
-        {/* Pie */}
+        {/* Absence types breakdown */}
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm p-5">
-          <h2 className="font-bold text-slate-800 mb-4">توزيع أنواع الغياب</h2>
+          <h2 className="font-bold text-slate-800 mb-4">مجاميع أنواع الغياب</h2>
           {absenceByType.length > 0 ? (
-            <ResponsiveContainer width="100%" height={220}>
-              <PieChart>
-                <Pie data={absenceByType} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={55} outerRadius={85}>
-                  {absenceByType.map((e, i) => <Cell key={i} fill={e.color} />)}
-                </Pie>
-                <Tooltip formatter={(v) => [`${v} سجل`, '']} />
-                <Legend iconType="circle" iconSize={8} />
-              </PieChart>
-            </ResponsiveContainer>
+            <div className="space-y-3">
+              {absenceByType.map(item => (
+                <div key={item.type}>
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="text-sm text-slate-700 font-medium">{item.name}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-xs text-slate-400">{item.count} سجل</span>
+                      <span className="text-sm font-bold text-slate-800 w-14 text-left">{item.days} يوم</span>
+                    </div>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all"
+                      style={{ width: `${(item.days / maxDays) * 100}%`, backgroundColor: item.color }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
           ) : (
             <div className="flex flex-col items-center justify-center h-48 text-slate-300">
               <CalendarX size={40} />
