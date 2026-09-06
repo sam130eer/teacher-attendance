@@ -12,13 +12,6 @@ function sendWhatsApp(phone: string, msg: string) {
   window.open(`https://wa.me/${num}?text=${encodeURIComponent(msg)}`, '_blank');
 }
 
-function fmtTime12(t: string) {
-  if (!t) return '';
-  const [h, m] = t.split(':').map(Number);
-  const ampm = h >= 12 ? 'م' : 'ص';
-  const h12 = h % 12 || 12;
-  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
-}
 
 function hijriDate(dateStr: string) {
   try {
@@ -166,7 +159,7 @@ function buildForm18HTML(
 <div class="body-line">السلام عليكم ورحمة الله وبركاته وبعد:</div>
 <div class="body-line">إنه في يوم <strong>${day}</strong> الموافق <strong>${hDate}</strong>هـ&nbsp; اتضح ما يلي:</div>
 
-<div class="violation-box">انصرافكم مبكراً قبل نهاية العمل من الساعة ( <strong>${fmtTime12(r.actualDepartureTime)}</strong> ) والوقت المقرر ( <strong>${fmtTime12(r.scheduledEndTime)}</strong> )</div>
+<div class="violation-box">انصرافكم مبكراً قبل نهاية العمل</div>
 
 <div class="req">عليه نأمل توضيح أسباب ذلك مع إرفاق ما يؤيد عذركم ،،، ولكم تحياتي</div>
 
