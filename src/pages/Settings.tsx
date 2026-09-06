@@ -1,7 +1,6 @@
 import { useState, useRef } from 'react';
 import { Settings, Clock, School, Save, CheckCircle, KeyRound, Eye, EyeOff, Download, Upload, UserCog, AlertTriangle, RotateCcw, CalendarDays } from 'lucide-react';
 import { useApp } from '../context/AppContext';
-import { DEFAULT_WEEK_SCHEDULE } from '../context/AppContext';
 import { getCredentials, saveCredentials } from '../utils/auth';
 import { supabase } from '../lib/supabase';
 import type { Teacher, Absence, Tardiness } from '../types';
@@ -19,8 +18,6 @@ export default function SettingsPage() {
   const [saved, setSaved] = useState(false);
 
   const [principalName, setPrincipalName] = useState(() => settings.principalName || '');
-  const [weekSchedule, setWeekSchedule]   = useState(() => settings.weekSchedule ?? DEFAULT_WEEK_SCHEDULE);
-  const [scheduleSaved, setScheduleSaved] = useState(false);
 
   const stored = getCredentials();
   const [authForm, setAuthForm] = useState({ username: stored.username, password: '', confirmPassword: '' });
@@ -272,72 +269,6 @@ export default function SettingsPage() {
         </div>
       </form>
 
-      {/* Week Schedule */}
-      <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4">
-        <h2 className="font-semibold text-slate-700 flex items-center gap-2">
-          <CalendarDays size={16} className="text-slate-400" />
-          جدول أوقات الانصراف الأسبوعي
-        </h2>
-        <p className="text-xs text-slate-400">يُستخدم لحساب الانصراف المبكر تلقائياً حسب يوم التاريخ المختار.</p>
-        <table className="w-full text-sm border-collapse">
-          <thead>
-            <tr className="bg-slate-50">
-              <th className="text-right px-3 py-2 font-semibold text-slate-600 border border-slate-200 rounded-r-lg">اليوم</th>
-              <th className="text-right px-3 py-2 font-semibold text-slate-600 border border-slate-200">وقت الانصراف</th>
-              <th className="px-3 py-2 border border-slate-200 text-slate-400 text-xs font-normal text-center rounded-l-lg">إجازة؟</th>
-            </tr>
-          </thead>
-          <tbody>
-            {[
-              { key: '0', label: 'الأحد' },
-              { key: '1', label: 'الاثنين' },
-              { key: '2', label: 'الثلاثاء' },
-              { key: '3', label: 'الأربعاء' },
-              { key: '4', label: 'الخميس' },
-              { key: '5', label: 'الجمعة' },
-              { key: '6', label: 'السبت' },
-            ].map(({ key, label }) => {
-              const isOff = !weekSchedule[key];
-              return (
-                <tr key={key} className={isOff ? 'opacity-50' : ''}>
-                  <td className="px-3 py-2 border border-slate-200 font-medium text-slate-700">{label}</td>
-                  <td className="px-3 py-2 border border-slate-200">
-                    <input
-                      type="time"
-                      disabled={isOff}
-                      value={weekSchedule[key] || ''}
-                      onChange={e => setWeekSchedule(s => ({ ...s, [key]: e.target.value }))}
-                      className="border border-slate-300 rounded-lg px-2 py-1.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-slate-100 disabled:cursor-not-allowed"
-                    />
-                  </td>
-                  <td className="px-3 py-2 border border-slate-200 text-center">
-                    <input
-                      type="checkbox"
-                      checked={isOff}
-                      onChange={e => setWeekSchedule(s => ({ ...s, [key]: e.target.checked ? '' : '14:30' }))}
-                      className="w-4 h-4 rounded accent-indigo-600"
-                    />
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => { updateSettings({ weekSchedule }); setScheduleSaved(true); setTimeout(() => setScheduleSaved(false), 2500); }}
-            className="flex items-center gap-2 bg-blue-600 text-white px-5 py-2.5 rounded-xl text-base font-medium hover:bg-blue-700 transition-colors"
-          >
-            <Save size={15} />
-            حفظ الجدول
-          </button>
-          {scheduleSaved && (
-            <span className="flex items-center gap-1.5 text-green-600 text-sm font-medium">
-              <CheckCircle size={16} /> تم الحفظ
-            </span>
-          )}
-        </div>
-      </div>
 
       <div className="bg-white rounded-xl border border-slate-100 shadow-sm p-5 space-y-4">
         <h2 className="font-semibold text-slate-700 flex items-center gap-2">
