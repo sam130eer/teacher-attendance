@@ -49,21 +49,9 @@ export default function Dashboard() {
 
       {/* ── Hero header ─────────────────────────────────────────────────── */}
       <div className="bg-gradient-to-l from-indigo-600 to-violet-700 rounded-2xl p-6 text-white">
-        <div className="flex items-center gap-4 mb-3">
-          <div className="bg-white rounded-2xl p-2 shadow-lg shrink-0">
-            <img
-              src="/hader-logo.png"
-              alt="حاضر"
-              style={{ height: '64px', width: 'auto', display: 'block' }}
-              onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
-            />
-          </div>
-          <div>
-            <p className="text-indigo-200 text-sm mb-0.5">{todayDateLabel}</p>
-            <h1 className="text-2xl font-bold">لوحة متابعة الانضباط</h1>
-            <p className="text-indigo-200 text-sm mt-0.5">{teachers.length} معلم مسجل في النظام</p>
-          </div>
-        </div>
+        <p className="text-indigo-200 text-sm mb-1">{todayDateLabel}</p>
+        <h1 className="text-2xl font-bold">لوحة متابعة الانضباط</h1>
+        <p className="text-indigo-200 text-sm mt-1">{teachers.length} معلم مسجل في النظام</p>
 
         {/* today quick pills */}
         <div className="flex flex-wrap gap-3 mt-5">

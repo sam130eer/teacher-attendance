@@ -39,23 +39,26 @@ export default function Sidebar({ open, onClose, onLogout }: Props) {
         style={{ background: 'linear-gradient(175deg, #1e1b4b 0%, #312e81 50%, #3730a3 100%)' }}
       >
         {/* Logo area */}
-        <div className="flex items-center justify-between p-4 border-b border-white/10">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-2xl flex items-center justify-center shadow-lg shrink-0"
-              style={{ background: 'linear-gradient(135deg, #f59e0b, #d97706)' }}>
-              <span className="text-white font-black text-base">ن</span>
-            </div>
-            <div>
-              <h1 className="text-base font-bold text-white leading-tight">نظام إدارة</h1>
-              <p className="text-sm text-indigo-300">الغياب والتأخير</p>
-            </div>
+        <div className="border-b border-white/10">
+          <div className="flex justify-end p-2 lg:hidden">
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
+            >
+              <X size={16} />
+            </button>
           </div>
-          <button
-            onClick={onClose}
-            className="lg:hidden p-1.5 rounded-lg hover:bg-white/10 text-white/50 hover:text-white transition-colors"
-          >
-            <X size={16} />
-          </button>
+          <div className="flex flex-col items-center pb-4 px-4 pt-2">
+            <div className="bg-white rounded-2xl p-2 shadow-lg mb-2">
+              <img
+                src="/hader-logo.png"
+                alt="حاضر"
+                style={{ height: '80px', width: 'auto', display: 'block' }}
+                onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
+              />
+            </div>
+            <p className="text-sm text-indigo-200 font-medium">متابعة الانضباط</p>
+          </div>
         </div>
 
         {/* Navigation */}
