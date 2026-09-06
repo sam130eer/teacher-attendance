@@ -55,7 +55,7 @@ export default function Login({ onLogin }: Props) {
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
           <div style={{
-            width: '120px', height: '120px', borderRadius: '50%',
+            width: '150px', height: '150px', borderRadius: '50%',
             background: 'white', padding: '6px', marginBottom: '0.75rem',
             boxShadow: '0 16px 40px rgba(0,0,0,0.35)', overflow: 'hidden',
           }}>
