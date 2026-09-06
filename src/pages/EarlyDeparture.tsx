@@ -352,8 +352,6 @@ export default function EarlyDeparturePage() {
                 <tr className="bg-slate-50 border-b border-slate-100">
                   <th className="text-right px-4 py-3 font-semibold text-slate-600">المعلم</th>
                   <th className="text-right px-4 py-3 font-semibold text-slate-600">التاريخ</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600">وقت الانصراف المقرر</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600">وقت الانصراف الفعلي</th>
                   <th className="text-right px-4 py-3 font-semibold text-slate-600">الدقائق</th>
                   <th className="text-right px-4 py-3 font-semibold text-slate-600">ملاحظات</th>
                   <th className="px-4 py-3" />
@@ -367,8 +365,6 @@ export default function EarlyDeparturePage() {
                     <tr key={r.id} className={`border-b border-slate-50 hover:bg-indigo-50/40 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
                       <td className="px-4 py-3 font-medium text-slate-800">{teacher?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-slate-600">{formatDate(r.date)}</td>
-                      <td className="px-4 py-3 text-slate-600 font-mono">{formatTime(r.scheduledEndTime)}</td>
-                      <td className="px-4 py-3 text-slate-600 font-mono">{formatTime(r.actualDepartureTime)}</td>
                       <td className="px-4 py-3">
                         <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs font-bold">{mins} د</span>
                       </td>
@@ -401,7 +397,7 @@ export default function EarlyDeparturePage() {
               </tbody>
               <tfoot>
                 <tr className="bg-slate-50 border-t border-slate-200">
-                  <td colSpan={4} className="px-4 py-2.5 text-sm font-semibold text-slate-600">الإجمالي</td>
+                  <td colSpan={2} className="px-4 py-2.5 text-sm font-semibold text-slate-600">الإجمالي</td>
                   <td className="px-4 py-2.5">
                     <span className="bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full text-xs font-bold">{totalMins} د</span>
                   </td>
