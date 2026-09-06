@@ -159,7 +159,7 @@ function buildForm18HTML(
 <div class="body-line">السلام عليكم ورحمة الله وبركاته وبعد:</div>
 <div class="body-line">إنه في يوم <strong>${day}</strong> الموافق <strong>${hDate}</strong>هـ&nbsp; اتضح ما يلي:</div>
 
-<div class="violation-box">انصرافكم مبكراً قبل نهاية العمل</div>
+<div class="violation-box">انصرافكم مبكراً قبل نهاية العمل وعدم تسجيل خروج حسب الجدول المدرسي</div>
 
 <div class="req">عليه نأمل توضيح أسباب ذلك مع إرفاق ما يؤيد عذركم ،،، ولكم تحياتي</div>
 
