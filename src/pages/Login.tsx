@@ -54,12 +54,18 @@ export default function Login({ onLogin }: Props) {
       <div style={{ width: '100%', maxWidth: '380px' }}>
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-          <img
-            src="/hader-logo.png"
-            alt="حاضر"
-            style={{ width: '160px', height: 'auto', marginBottom: '0.75rem', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.4))' }}
-            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
-          />
+          <div style={{
+            width: '120px', height: '120px', borderRadius: '50%',
+            background: 'white', padding: '6px', marginBottom: '0.75rem',
+            boxShadow: '0 16px 40px rgba(0,0,0,0.35)', overflow: 'hidden',
+          }}>
+            <img
+              src="/hader-logo.png"
+              alt="حاضر"
+              style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%', display: 'block' }}
+              onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
+            />
+          </div>
           {schoolName && (
             <p style={{ color: '#fde68a', fontSize: '0.95rem', fontWeight: 600, margin: '0.35rem 0 0' }}>{schoolName}</p>
           )}

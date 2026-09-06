@@ -49,11 +49,11 @@ export default function Sidebar({ open, onClose, onLogout }: Props) {
             </button>
           </div>
           <div className="flex flex-col items-center pb-4 px-4 pt-2">
-            <div className="bg-white rounded-2xl p-2 shadow-lg mb-2">
+            <div className="bg-white rounded-full p-1.5 shadow-lg mb-2" style={{ width: '90px', height: '90px', overflow: 'hidden' }}>
               <img
                 src="/hader-logo.png"
                 alt="حاضر"
-                style={{ height: '80px', width: 'auto', display: 'block' }}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', borderRadius: '50%' }}
                 onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
               />
             </div>
