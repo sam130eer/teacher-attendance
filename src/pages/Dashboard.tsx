@@ -51,8 +51,15 @@ export default function Dashboard() {
       <div className="bg-gradient-to-l from-indigo-600 to-violet-700 rounded-2xl p-6 text-white">
         <div className="flex items-center justify-between gap-4">
 
-          {/* Left — stats grid */}
-          <div className="flex flex-wrap gap-3 flex-1">
+          {/* Right — title + date (first in DOM = right in RTL) */}
+          <div className="shrink-0">
+            <h1 className="text-2xl font-bold leading-tight">لوحة متابعة الانضباط</h1>
+            <p className="text-indigo-200 text-sm mt-1">{todayDateLabel}</p>
+            <p className="text-indigo-300 text-xs mt-0.5">{teachers.length} معلم مسجل</p>
+          </div>
+
+          {/* Left — stats grid (last in DOM = left in RTL) */}
+          <div className="flex flex-wrap gap-3 justify-end flex-1">
             <div className="bg-white/15 rounded-xl px-5 py-3 flex items-center gap-3">
               <CalendarX size={20} className="text-red-300 shrink-0" />
               <div>
@@ -81,13 +88,6 @@ export default function Dashboard() {
                 <p className="font-extrabold text-3xl leading-none">{Math.max(0, teachers.length - todayAbsences.length)}</p>
               </div>
             </div>
-          </div>
-
-          {/* Right — title + date */}
-          <div className="text-left shrink-0 hidden sm:block">
-            <h1 className="text-2xl font-bold leading-tight">لوحة متابعة الانضباط</h1>
-            <p className="text-indigo-200 text-sm mt-1">{todayDateLabel}</p>
-            <p className="text-indigo-300 text-xs mt-0.5">{teachers.length} معلم مسجل</p>
           </div>
 
         </div>
