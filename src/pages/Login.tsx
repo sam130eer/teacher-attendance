@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Eye, EyeOff, Lock, User, GraduationCap } from 'lucide-react';
+import { Eye, EyeOff, Lock, User } from 'lucide-react';
 import { getCredentials } from '../utils/auth';
 
 function getSchoolName() {
@@ -54,15 +54,12 @@ export default function Login({ onLogin }: Props) {
       <div style={{ width: '100%', maxWidth: '380px' }}>
         {/* Logo */}
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '2rem' }}>
-          <div style={{
-            width: '72px', height: '72px', borderRadius: '1.25rem',
-            background: 'linear-gradient(135deg, #f59e0b, #d97706)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            marginBottom: '1rem', boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
-          }}>
-            <GraduationCap size={36} color="white" />
-          </div>
-          <h1 style={{ color: 'white', fontSize: '1.4rem', fontWeight: 700, margin: 0 }}>نظام إدارة الغياب والتأخير</h1>
+          <img
+            src="/hader-logo.png"
+            alt="حاضر"
+            style={{ width: '160px', height: 'auto', marginBottom: '0.75rem', filter: 'drop-shadow(0 8px 24px rgba(0,0,0,0.4))' }}
+            onError={e => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+          />
           {schoolName && (
             <p style={{ color: '#fde68a', fontSize: '0.95rem', fontWeight: 600, margin: '0.35rem 0 0' }}>{schoolName}</p>
           )}
