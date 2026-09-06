@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useApp } from '../context/AppContext';
-import { calcAbsenceDays, calcTardinessMinutes, calcEarlyDepartureMinutes, getMonthName } from '../utils/helpers';
+import { calcAbsenceDays, calcTardinessMinutes, getMonthName } from '../utils/helpers';
 import type { AbsenceType } from '../types';
 import { ABSENCE_COLORS, ABSENCE_TYPES } from '../types';
 
@@ -103,7 +103,6 @@ export default function Statistics() {
     const tTar = tardiness.filter(x => x.teacherId === t.id && new Date(x.date).getFullYear() === selectedYear);
     const tEd  = earlyDepartures.filter(x => x.teacherId === t.id && new Date(x.date).getFullYear() === selectedYear);
     const totalMins  = tTar.reduce((s, x) => s + calcTardinessMinutes(x), 0);
-    const edMins     = tEd.reduce((s, x) => s + calcEarlyDepartureMinutes(x), 0);
     const absDays    = tAbs.reduce((s, a) => s + calcAbsenceDays(a), 0);
     const typeCounts = Object.fromEntries(
       ABSENCE_TYPE_KEYS.map(type => [
@@ -119,7 +118,6 @@ export default function Statistics() {
       avgMins: tTar.length ? Math.round(totalMins / tTar.length) : 0,
       typeCounts,
       edCount: tEd.length,
-      edMins,
     };
   });
 
@@ -130,14 +128,14 @@ export default function Statistics() {
   const byAbsenceDays    = [...teacherStatsBase].sort((a, b) => b.absDays   - a.absDays  ).filter(x => x.absDays   > 0);
   const byTardinessCount = [...teacherStatsBase].sort((a, b) => b.tarCount  - a.tarCount ).filter(x => x.tarCount  > 0);
   const byTardinessMins  = [...teacherStatsBase].sort((a, b) => b.totalMins - a.totalMins).filter(x => x.totalMins > 0);
-  const byEarlyDep       = [...teacherStatsBase].sort((a, b) => b.edMins    - a.edMins   ).filter(x => x.edMins    > 0);
+  const byEarlyDep       = [...teacherStatsBase].sort((a, b) => b.edCount   - a.edCount  ).filter(x => x.edCount   > 0);
 
   // ── Summary numbers ────────────────────────────────────────────────────────
 
   const periodData      = getDataByPeriod();
   const totalAbsDays    = teacherStatsBase.reduce((s, t) => s + t.absDays, 0);
   const totalTarCount   = teacherStatsBase.reduce((s, t) => s + t.tarCount, 0);
-  const totalEdMins     = teacherStatsBase.reduce((s, t) => s + t.edMins, 0);
+  const totalEdCount    = teacherStatsBase.reduce((s, t) => s + t.edCount, 0);
   const avgAbsPerTeacher = teachers.length ? (totalAbsDays / teachers.length).toFixed(1) : '0';
 
   return (
@@ -177,7 +175,7 @@ export default function Statistics() {
           { label: 'إجمالي أيام الغياب', value: `${totalAbsDays} يوم`,    color: 'bg-indigo-50 text-indigo-700' },
           { label: 'متوسط الغياب/معلم',  value: `${avgAbsPerTeacher} يوم`,color: 'bg-violet-50 text-violet-700' },
           { label: 'حالات التأخير',       value: totalTarCount,            color: 'bg-amber-50  text-amber-700'  },
-          { label: 'دقائق الانصراف المبكر', value: `${totalEdMins} دقيقة`, color: 'bg-rose-50   text-rose-700'   },
+          { label: 'حالات الانصراف المبكر', value: `${totalEdCount} حالة`,  color: 'bg-rose-50   text-rose-700'   },
         ].map(s => (
           <div key={s.label} className={`rounded-2xl p-4 ${s.color}`}>
             <p className="text-sm opacity-70">{s.label}</p>
@@ -240,14 +238,14 @@ export default function Statistics() {
       {/* Early departure bar chart */}
       {byEarlyDep.length > 0 && (
         <div className="bg-white rounded-2xl p-5 border border-slate-100 shadow-sm">
-          <h2 className="font-bold text-slate-800 mb-4">أكثر المعلمين انصرافاً مبكراً — دقائق ({selectedYear})</h2>
+          <h2 className="font-bold text-slate-800 mb-4">أكثر المعلمين انصرافاً مبكراً — عدد ({selectedYear})</h2>
           <ResponsiveContainer width="100%" height={250}>
             <BarChart data={byEarlyDep.slice(0, 8)} layout="vertical">
               <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
-              <XAxis type="number" tick={{ fontSize: 11 }} />
+              <XAxis type="number" tick={{ fontSize: 11 }} allowDecimals={false} />
               <YAxis type="category" dataKey="name" width={100} tick={{ fontSize: 11 }} />
-              <Tooltip formatter={(v) => [`${v} دقيقة`, 'الانصراف المبكر']} />
-              <Bar dataKey="edMins" fill="#f43f5e" radius={[0, 4, 4, 0]} />
+              <Tooltip formatter={(v) => [`${v} مرة`, 'الانصراف المبكر']} />
+              <Bar dataKey="edCount" fill="#f43f5e" radius={[0, 4, 4, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -347,7 +345,7 @@ export default function Statistics() {
         <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden mb-5">
           <div className="px-5 py-4 bg-gradient-to-l from-rose-500 to-pink-600">
             <h3 className="font-bold text-white text-base">الانصراف المبكر</h3>
-            <p className="text-white/70 text-xs mt-0.5">مرتب تنازلياً حسب الدقائق — {selectedYear}</p>
+            <p className="text-white/70 text-xs mt-0.5">مرتب تنازلياً حسب العدد — {selectedYear}</p>
           </div>
           {byEarlyDep.length === 0 ? (
             <p className="p-8 text-center text-slate-400 text-sm">لا توجد سجلات انصراف مبكر</p>
@@ -359,18 +357,10 @@ export default function Statistics() {
                     <th className="text-center p-3 font-semibold text-slate-500 w-12">#</th>
                     <th className="text-right p-3 font-semibold text-slate-700">الاسم</th>
                     <th className="text-center p-3 font-semibold text-slate-700">عدد المرات</th>
-                    <th className="text-center p-3 font-semibold text-slate-700">إجمالي الدقائق</th>
-                    <th className="text-center p-3 font-semibold text-slate-700">الأيام المحتسبة</th>
                   </tr>
                 </thead>
                 <tbody>
                   {byEarlyDep.map((t, i) => {
-                    const days  = Math.floor(t.edMins / 420);
-                    const hours = Math.floor(t.edMins / 60);
-                    const mins  = t.edMins % 60;
-                    const timeLabel = hours > 0 && mins > 0
-                      ? `${hours} س ${mins} د`
-                      : hours > 0 ? `${hours} ساعة` : `${mins} دقيقة`;
                     const stripe = i % 2 === 1 ? 'bg-rose-50/60' : 'bg-white';
                     return (
                       <tr key={t.name} className={`border-b border-slate-100 ${stripe} hover:bg-rose-50/70 transition-colors`}>
@@ -384,17 +374,6 @@ export default function Statistics() {
                           <span className="bg-rose-50 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
                             {t.edCount} مرة
                           </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          <span className="bg-pink-50 text-pink-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">
-                            {timeLabel}
-                          </span>
-                        </td>
-                        <td className="p-3 text-center">
-                          {days > 0
-                            ? <span className="bg-rose-100 text-rose-700 px-2.5 py-0.5 rounded-full text-xs font-semibold">{days} يوم</span>
-                            : <span className="text-slate-300 text-xs">—</span>
-                          }
                         </td>
                       </tr>
                     );

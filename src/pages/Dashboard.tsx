@@ -1,7 +1,7 @@
 import { Users, CalendarX, Clock, LogIn, AlertTriangle } from 'lucide-react';
 import { useApp } from '../context/AppContext';
 import Badge from '../components/UI/Badge';
-import { calcAbsenceDays, calcTardinessMinutes, calcEarlyDepartureMinutes, formatDate, getTodayStr, getCurrentMonthRange } from '../utils/helpers';
+import { calcAbsenceDays, calcTardinessMinutes, formatDate, getTodayStr, getCurrentMonthRange } from '../utils/helpers';
 import type { AbsenceType } from '../types';
 import { ABSENCE_COLORS, ABSENCE_TYPES } from '../types';
 
@@ -20,7 +20,6 @@ export default function Dashboard() {
 
   const totalAbsDays = monthAbsences.reduce((s, a) => s + calcAbsenceDays(a), 0);
   const totalTarMins = monthTardiness.reduce((s, t) => s + calcTardinessMinutes(t), 0);
-  const totalEdMins  = monthEarlyDep.reduce((s, e) => s + calcEarlyDepartureMinutes(e), 0);
   const notInFares   = absences.filter(a => !a.addedInFares).length;
 
   const absenceByType = Object.entries(ABSENCE_TYPES).map(([type, name]) => {
@@ -40,7 +39,7 @@ export default function Dashboard() {
   const recentEvents = [
     ...[...absences].sort((a, b) => b.startDate.localeCompare(a.startDate)).slice(0, 6).map(a => ({ kind: 'absence' as const, id: a.id, teacherId: a.teacherId, date: a.startDate, type: a.type, mins: 0 })),
     ...[...tardiness].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map(t => ({ kind: 'tardiness' as const, id: t.id, teacherId: t.teacherId, date: t.date, type: '' as AbsenceType, mins: calcTardinessMinutes(t) })),
-    ...[...earlyDepartures].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map(e => ({ kind: 'early' as const, id: e.id, teacherId: e.teacherId, date: e.date, type: '' as AbsenceType, mins: calcEarlyDepartureMinutes(e) })),
+    ...[...earlyDepartures].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 6).map(e => ({ kind: 'early' as const, id: e.id, teacherId: e.teacherId, date: e.date, type: '' as AbsenceType, mins: 0 })),
   ].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
 
   const todayDateLabel = new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
@@ -147,7 +146,7 @@ export default function Dashboard() {
             </div>
             <div>
               <p className="text-3xl font-extrabold text-slate-800">{monthEarlyDep.length}</p>
-              <p className="text-xs text-slate-400 mt-0.5">حالة · {totalEdMins} دقيقة إجمالاً</p>
+              <p className="text-xs text-slate-400 mt-0.5">حالة انصراف مبكر هذا الشهر</p>
             </div>
             <div className="h-1.5 rounded-full bg-rose-100 overflow-hidden">
               <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(100, (monthEarlyDep.length / Math.max(teachers.length, 1)) * 100)}%` }} />
@@ -244,7 +243,7 @@ export default function Dashboard() {
                     <div className="shrink-0">
                       {isAbsence  && <Badge type={ev.type} />}
                       {isTardiness && <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${ev.mins >= 30 ? 'bg-red-100 text-red-700' : 'bg-amber-100 text-amber-700'}`}>+{ev.mins} د</span>}
-                      {isEarly    && <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">{ev.mins} د مبكراً</span>}
+                      {isEarly    && <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-rose-100 text-rose-700">انصراف مبكر</span>}
                     </div>
                   </div>
                 );

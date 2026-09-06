@@ -4,7 +4,7 @@ import { useApp } from '../context/AppContext';
 import Modal from '../components/UI/Modal';
 import BulkImportModal from '../components/UI/BulkImportModal';
 import type { Teacher } from '../types';
-import { calcTardinessMinutes, calcEarlyDepartureMinutes } from '../utils/helpers';
+import { calcTardinessMinutes } from '../utils/helpers';
 
 const empty = { name: '', nationalId: '', specialty: '', phone: '' };
 
@@ -138,7 +138,6 @@ export default function Teachers() {
             const tarMins  = tarList.reduce((s, x) => s + calcTardinessMinutes(x), 0);
             const edList   = earlyDepartures.filter(x => x.teacherId === t.id);
             const edCount  = edList.length;
-            const edMins   = edList.reduce((s, x) => s + calcEarlyDepartureMinutes(x), 0);
             const color = avatarColor(t.name);
             return (
               <div key={t.id} className="bg-white rounded-2xl border border-slate-100 shadow-sm hover:shadow-md transition-shadow overflow-hidden group">
@@ -215,7 +214,6 @@ export default function Teachers() {
                         <p className={`text-xs ${edCount === 0 ? 'text-green-400' : 'text-rose-400'}`}>انصراف</p>
                         <p className={`text-sm font-bold ${edCount === 0 ? 'text-green-600' : 'text-rose-600'}`}>
                           {edCount}
-                          {edMins > 0 && <span className="text-xs font-normal"> ({edMins}د)</span>}
                         </p>
                       </div>
                     </div>

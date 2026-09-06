@@ -4,8 +4,178 @@ import { useApp } from '../context/AppContext';
 import Modal from '../components/UI/Modal';
 import BulkImportRecordsModal from '../components/UI/BulkImportRecordsModal';
 import AccountabilityModal from '../components/UI/AccountabilityModal';
-import type { Tardiness as TardinessType } from '../types';
+import type { Tardiness as TardinessType, Teacher } from '../types';
 import { formatDate, formatTime, calcTardinessMinutes, getTodayStr } from '../utils/helpers';
+
+function hijriDate(dateStr: string) {
+  try { return new Date(dateStr).toLocaleDateString('ar-SA-u-ca-islamic', { day: 'numeric', month: 'numeric', year: 'numeric' }); }
+  catch { return dateStr; }
+}
+
+function dayName(dateStr: string) {
+  try { return new Date(dateStr).toLocaleDateString('ar-SA', { weekday: 'long' }); }
+  catch { return ''; }
+}
+
+function fmtTime12(t: string) {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const period = h >= 12 ? 'م' : 'ص';
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${period}`;
+}
+
+function buildForm18TardinessHTML(
+  teacher: Teacher,
+  t: TardinessType,
+  schoolName: string,
+  principalName: string,
+  origin: string,
+) {
+  const hDate = hijriDate(t.date);
+  const day   = dayName(t.date);
+  const actualTimeLabel = fmtTime12(t.actualTime);
+
+  return `<!DOCTYPE html>
+<html dir="rtl" lang="ar">
+<head>
+<meta charset="UTF-8">
+<title>نموذج مساءلة - ${teacher.name}</title>
+<style>
+  @page { size: A4 portrait; margin: 1.2cm 1.5cm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: Arial, Tahoma, sans-serif; font-size: 10pt; direction: rtl; color: #000; background: #fff; }
+  .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2.5px solid #000; padding-bottom: 8px; margin-bottom: 6px; }
+  .gov { font-size: 9pt; line-height: 2; text-align: right; }
+  .logo { text-align: center; }
+  .logo img { height: 80px; }
+  .ref { font-size: 8.5pt; line-height: 2; text-align: left; }
+  .title-bar { display: flex; justify-content: space-between; background: #c0c0c0; border: 1px solid #000; padding: 4px 8px; margin-bottom: 0; font-weight: bold; font-size: 9.5pt; }
+  .info-row { display: flex; border: 1px solid #000; border-top: none; }
+  .info-label { background: #c0c0c0; font-weight: bold; padding: 4px 8px; min-width: 90px; border-left: 1px solid #000; font-size: 9pt; white-space: nowrap; }
+  .info-val { padding: 4px 8px; flex: 1; font-size: 9.5pt; }
+  .t-tbl { width: 100%; border-collapse: collapse; border: 1px solid #000; border-top: none; margin-bottom: 10px; }
+  .t-tbl th { background: #c0c0c0; border: 1px solid #000; padding: 4px 6px; font-size: 8.5pt; font-weight: bold; text-align: center; }
+  .t-tbl td { border: 1px solid #000; padding: 4px 6px; font-size: 9pt; text-align: center; }
+  .salutation { margin: 6px 0 4px; font-size: 10pt; }
+  .body-line  { margin: 3px 0; font-size: 9.5pt; line-height: 1.7; }
+  .violation-box { border: 1.5px solid #000; background: #f0f0f0; padding: 5px 10px; margin: 4px 0; font-size: 10pt; font-weight: bold; }
+  .violation-normal { border: 1px solid #ccc; padding: 4px 10px; margin: 3px 0; font-size: 9.5pt; color: #555; }
+  .req { margin: 8px 0 4px; font-size: 9.5pt; }
+  .sig-row { display: flex; justify-content: flex-end; gap: 40px; margin: 6px 0; font-size: 9pt; }
+  .sig-item { display: flex; gap: 6px; align-items: center; }
+  .sig-line { display: inline-block; border-bottom: 1px solid #000; width: 120px; }
+  .divider { border: none; border-top: 1.5px dashed #555; margin: 10px 0; }
+  .reply-label { font-size: 9.5pt; margin: 4px 0; }
+  .dot-line { border-bottom: 1px dotted #000; min-height: 16px; margin: 6px 0; }
+  .decision-row { display: flex; align-items: center; gap: 16px; font-size: 9.5pt; margin: 6px 0; }
+  .checkbox { display: inline-flex; align-items: center; gap: 4px; }
+  .checkbox-box { width: 12px; height: 12px; border: 1.5px solid #000; display: inline-block; }
+  .note { font-size: 8pt; color: #444; margin-top: 8px; border-top: 1px solid #ccc; padding-top: 4px; }
+  @media print { body { -webkit-print-color-adjust: exact; print-color-adjust: exact; } }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="gov">
+    <div>المملكة العربية السعودية</div>
+    <div>وزارة التعليم</div>
+    <div>الإدارة العامة للتعليم بالمنطقة الشرقية</div>
+  </div>
+  <div class="logo">
+    <img src="${origin}/ministry-logo.png" alt="شعار" onerror="this.style.display='none'" />
+  </div>
+  <div class="ref">
+    <div>الرقم :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+    <div>التاريخ : ${hijriDate(new Date().toISOString().split('T')[0])}هـ</div>
+    <div>المشفوعات :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
+    <div>مدرسة : ${schoolName}</div>
+  </div>
+</div>
+
+<div class="title-bar">
+  <span>اسم النموذج : مساءلة على تأخر / انصراف</span>
+  <span>نموذج رقم ( 18 )</span>
+</div>
+<div class="title-bar" style="background:#e8e8e8;font-weight:normal;font-size:9pt;">
+  <span>رمز النموذج ( : و.م.ع.ن ) 02 - 02 - .</span>
+</div>
+
+<div class="info-row">
+  <div class="info-label">المدرسة</div>
+  <div class="info-val">${schoolName}</div>
+</div>
+<div class="info-row">
+  <div class="info-label">السجل المدني</div>
+  <div class="info-val">${teacher.nationalId}</div>
+</div>
+
+<table class="t-tbl">
+  <tr>
+    <th>الاسم</th>
+    <th>التخصص</th>
+    <th>المستوى / الرتبة</th>
+    <th>رقم الوظيفة</th>
+    <th>العمل الحالي</th>
+  </tr>
+  <tr>
+    <td>${teacher.name}</td>
+    <td>${teacher.specialty}</td>
+    <td></td>
+    <td></td>
+    <td>معلم</td>
+  </tr>
+</table>
+
+<div class="salutation">المكرم المعلم / <strong>${teacher.name}</strong> &nbsp;.وفقه الله</div>
+<div class="body-line">السلام عليكم ورحمة الله وبركاته وبعد:</div>
+<div class="body-line">إنه في يوم <strong>${day}</strong> الموافق <strong>${hDate}</strong>هـ&nbsp; اتضح ما يلي:</div>
+
+<div class="violation-box">تأخركم من بداية العمل، وحضوركم الساعة ( ${actualTimeLabel} )</div>
+
+<div class="req">عليه نأمل توضيح أسباب ذلك مع إرفاق ما يؤيد عذركم ،،، ولكم تحياتي</div>
+
+<div class="sig-row">
+  <div class="sig-item">التاريخ : ${hijriDate(new Date().toISOString().split('T')[0])}هـ</div>
+  <div class="sig-item">التوقيع <span class="sig-line"></span></div>
+  <div class="sig-item">مدير المدرسة : <strong>${principalName || '________________'}</strong></div>
+</div>
+
+<hr class="divider">
+
+<div class="reply-label">المكرم / مدير مدرسة <strong>${schoolName}</strong>&nbsp;&nbsp;وفقه الله</div>
+<div class="body-line">السلام عليكم ورحمة الله وبركاته</div>
+<div class="body-line">أفيدكم أن أسباب ذلك ما يلي:</div>
+<div class="dot-line"></div>
+<div class="dot-line"></div>
+<div class="dot-line"></div>
+
+<div class="sig-row" style="justify-content:space-between;margin-top:8px;">
+  <div class="sig-item">الاسم : <strong>${teacher.name}</strong></div>
+  <div class="sig-item">التوقيع <span class="sig-line"></span></div>
+  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;1448هـ</div>
+</div>
+
+<hr class="divider">
+
+<div class="decision-row">
+  <span>رأي مدير المدرسة</span>
+  <span class="checkbox"><span class="checkbox-box"></span> عذره مقبول</span>
+  <span class="checkbox"><span class="checkbox-box"></span> عذره غير مقبول ويحسم عليه</span>
+</div>
+
+<div class="sig-row">
+  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;1448هـ</div>
+  <div class="sig-item">التوقيع <span class="sig-line"></span></div>
+  <div class="sig-item">مدير المدرسة : <strong>${principalName || '________________'}</strong></div>
+</div>
+
+<div class="note">ملاحظة : ترفق بطاقة المساءلة مع أصل القرار في حالة عدم قبول العذر لحفظها بملفه بالإدارة ، وأصله لملفه بالمدرسة</div>
+
+</body>
+</html>`;
+}
 
 const emptyForm = {
   teacherId: '',
@@ -74,6 +244,19 @@ export default function Tardiness() {
   function minBadge(mins: number) {
     const cls = mins >= 60 ? 'bg-red-100 text-red-700' : mins >= 30 ? 'bg-orange-100 text-orange-700' : 'bg-yellow-100 text-yellow-700';
     return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>+{mins} دقيقة</span>;
+  }
+
+  function handlePrint(t: TardinessType) {
+    const teacher = teachers.find(x => x.id === t.teacherId);
+    if (!teacher) return;
+    const html = buildForm18TardinessHTML(teacher, t, settings.schoolName, settings.principalName, window.location.origin);
+    const win = window.open('', '_blank', 'width=860,height=700');
+    if (win) {
+      win.document.write(html);
+      win.document.close();
+      win.focus();
+      setTimeout(() => win.print(), 500);
+    }
   }
 
   function sendWhatsApp(phone: string, msg: string) {
@@ -190,6 +373,13 @@ export default function Tardiness() {
                       <td className="p-3 text-slate-500 max-w-40 truncate">{t.notes || '—'}</td>
                       <td className="p-3">
                         <div className="flex gap-1">
+                          <button
+                            onClick={() => handlePrint(t)}
+                            className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg"
+                            title="طباعة نموذج المساءلة"
+                          >
+                            <Printer size={14} />
+                          </button>
                           {teacher?.phone && (
                             <button
                               onClick={() => whatsAppSingle(teacher, t, mins, totalMins, teacherTardiness.length)}
