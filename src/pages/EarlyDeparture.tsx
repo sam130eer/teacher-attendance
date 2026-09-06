@@ -287,15 +287,13 @@ export default function EarlyDeparturePage() {
     sendWhatsApp(teacher.phone, msg);
   }
 
-  const totalMins = filtered.reduce((s, r) => s + calcEarlyDepartureMinutes(r), 0);
-
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">الانصراف المبكر</h1>
-          <p className="text-slate-500 text-base mt-1">{filtered.length} سجل — إجمالي {totalMins} دقيقة</p>
+          <p className="text-slate-500 text-base mt-1">{filtered.length} سجل</p>
         </div>
         <button
           onClick={openAdd}
@@ -339,7 +337,6 @@ export default function EarlyDeparturePage() {
                 <tr className="bg-slate-50 border-b border-slate-100">
                   <th className="text-right px-4 py-3 font-semibold text-slate-600">المعلم</th>
                   <th className="text-right px-4 py-3 font-semibold text-slate-600">التاريخ</th>
-                  <th className="text-right px-4 py-3 font-semibold text-slate-600">الدقائق</th>
                   <th className="text-right px-4 py-3 font-semibold text-slate-600">ملاحظات</th>
                   <th className="px-4 py-3" />
                 </tr>
@@ -347,14 +344,10 @@ export default function EarlyDeparturePage() {
               <tbody>
                 {filtered.map((r, i) => {
                   const teacher = teachers.find(t => t.id === r.teacherId);
-                  const mins = calcEarlyDepartureMinutes(r);
                   return (
                     <tr key={r.id} className={`border-b border-slate-50 hover:bg-indigo-50/40 transition-colors ${i % 2 === 0 ? 'bg-white' : 'bg-slate-50/50'}`}>
                       <td className="px-4 py-3 font-medium text-slate-800">{teacher?.name ?? '—'}</td>
                       <td className="px-4 py-3 text-slate-600">{formatDate(r.date)}</td>
-                      <td className="px-4 py-3">
-                        <span className="bg-rose-100 text-rose-700 px-2 py-0.5 rounded-full text-xs font-bold">{mins} د</span>
-                      </td>
                       <td className="px-4 py-3 text-slate-500 max-w-40 truncate">{r.notes || '—'}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center gap-1 justify-end">
@@ -384,10 +377,7 @@ export default function EarlyDeparturePage() {
               </tbody>
               <tfoot>
                 <tr className="bg-slate-50 border-t border-slate-200">
-                  <td colSpan={2} className="px-4 py-2.5 text-sm font-semibold text-slate-600">الإجمالي</td>
-                  <td className="px-4 py-2.5">
-                    <span className="bg-rose-200 text-rose-800 px-2 py-0.5 rounded-full text-xs font-bold">{totalMins} د</span>
-                  </td>
+                  <td colSpan={2} className="px-4 py-2.5 text-sm font-semibold text-slate-600">الإجمالي: {filtered.length} سجل</td>
                   <td colSpan={2} />
                 </tr>
               </tfoot>
