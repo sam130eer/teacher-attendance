@@ -3,7 +3,7 @@ import { Plus, Search, Edit2, Trash2, LogOut, MessageCircle, Printer } from 'luc
 import { useApp } from '../context/AppContext';
 import Modal from '../components/UI/Modal';
 import type { EarlyDeparture, Teacher } from '../types';
-import { calcEarlyDepartureMinutes, formatDate, formatTime, getTodayStr } from '../utils/helpers';
+import { calcEarlyDepartureMinutes, formatDate, getTodayStr } from '../utils/helpers';
 
 const empty = { teacherId: '', date: getTodayStr(), scheduledEndTime: '14:00', actualDepartureTime: '', notes: '' };
 
