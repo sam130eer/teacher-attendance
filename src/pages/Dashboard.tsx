@@ -49,42 +49,47 @@ export default function Dashboard() {
 
       {/* ── Hero header ─────────────────────────────────────────────────── */}
       <div className="bg-gradient-to-l from-indigo-600 to-violet-700 rounded-2xl p-6 text-white">
-        <p className="text-indigo-200 text-sm mb-1">{todayDateLabel}</p>
-        <h1 className="text-2xl font-bold">لوحة متابعة الانضباط</h1>
-        <p className="text-indigo-200 text-sm mt-1">{teachers.length} معلم مسجل في النظام</p>
+        <div className="flex items-center justify-between gap-4">
 
-        {/* today quick pills */}
-        <div className="flex flex-wrap gap-3 mt-5">
-          <div className="bg-white/15 rounded-xl px-4 py-2.5 flex items-center gap-2">
-            <CalendarX size={16} className="text-red-300" />
-            <div>
-              <p className="text-xs text-indigo-200">غياب اليوم</p>
-              <p className="font-bold text-lg leading-none">{todayAbsences.length}</p>
+          {/* Left — stats grid */}
+          <div className="flex flex-wrap gap-3 flex-1">
+            <div className="bg-white/15 rounded-xl px-5 py-3 flex items-center gap-3">
+              <CalendarX size={20} className="text-red-300 shrink-0" />
+              <div>
+                <p className="text-xs text-indigo-200">غياب اليوم</p>
+                <p className="font-extrabold text-3xl leading-none">{todayAbsences.length}</p>
+              </div>
+            </div>
+            <div className="bg-white/15 rounded-xl px-5 py-3 flex items-center gap-3">
+              <Clock size={20} className="text-amber-300 shrink-0" />
+              <div>
+                <p className="text-xs text-indigo-200">تأخير اليوم</p>
+                <p className="font-extrabold text-3xl leading-none">{todayTardiness.length}</p>
+              </div>
+            </div>
+            <div className="bg-white/15 rounded-xl px-5 py-3 flex items-center gap-3">
+              <LogIn size={20} className="text-rose-300 shrink-0" />
+              <div>
+                <p className="text-xs text-indigo-200">انصراف مبكر</p>
+                <p className="font-extrabold text-3xl leading-none">{todayEarlyDep.length}</p>
+              </div>
+            </div>
+            <div className="bg-white/15 rounded-xl px-5 py-3 flex items-center gap-3">
+              <Users size={20} className="text-green-300 shrink-0" />
+              <div>
+                <p className="text-xs text-indigo-200">حاضرون اليوم</p>
+                <p className="font-extrabold text-3xl leading-none">{Math.max(0, teachers.length - todayAbsences.length)}</p>
+              </div>
             </div>
           </div>
-          <div className="bg-white/15 rounded-xl px-4 py-2.5 flex items-center gap-2">
-            <Clock size={16} className="text-amber-300" />
-            <div>
-              <p className="text-xs text-indigo-200">تأخير اليوم</p>
-              <p className="font-bold text-lg leading-none">{todayTardiness.length}</p>
-            </div>
+
+          {/* Right — title + date */}
+          <div className="text-left shrink-0 hidden sm:block">
+            <h1 className="text-2xl font-bold leading-tight">لوحة متابعة الانضباط</h1>
+            <p className="text-indigo-200 text-sm mt-1">{todayDateLabel}</p>
+            <p className="text-indigo-300 text-xs mt-0.5">{teachers.length} معلم مسجل</p>
           </div>
-          <div className="bg-white/15 rounded-xl px-4 py-2.5 flex items-center gap-2">
-            <LogIn size={16} className="text-rose-300" />
-            <div>
-              <p className="text-xs text-indigo-200">انصراف مبكر اليوم</p>
-              <p className="font-bold text-lg leading-none">{todayEarlyDep.length}</p>
-            </div>
-          </div>
-          <div className="bg-white/15 rounded-xl px-4 py-2.5 flex items-center gap-2">
-            <Users size={16} className="text-green-300" />
-            <div>
-              <p className="text-xs text-indigo-200">حاضرون اليوم</p>
-              <p className="font-bold text-lg leading-none">
-                {Math.max(0, teachers.length - todayAbsences.length)}
-              </p>
-            </div>
-          </div>
+
         </div>
       </div>
 
