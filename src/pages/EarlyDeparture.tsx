@@ -5,7 +5,7 @@ import Modal from '../components/UI/Modal';
 import type { EarlyDeparture, Teacher } from '../types';
 import { calcEarlyDepartureMinutes, formatDate, getTodayStr } from '../utils/helpers';
 
-const empty = { teacherId: '', date: getTodayStr(), scheduledEndTime: '14:00', actualDepartureTime: '', notes: '' };
+const empty = { teacherId: '', date: getTodayStr(), scheduledEndTime: '', actualDepartureTime: '', notes: '' };
 
 function sendWhatsApp(phone: string, msg: string) {
   const num = phone.replace(/\D/g, '').replace(/^0/, '966');
@@ -208,13 +208,11 @@ function buildForm18HTML(
 
 export default function EarlyDeparturePage() {
   const { teachers, earlyDepartures, settings, addEarlyDeparture, updateEarlyDeparture, deleteEarlyDeparture } = useApp();
-  const weekSchedule = settings.weekSchedule ?? {};
-
   const [search, setSearch]               = useState('');
   const [filterTeacher, setFilterTeacher] = useState('');
   const [showModal, setShowModal]         = useState(false);
   const [editing, setEditing]             = useState<EarlyDeparture | null>(null);
-  const [form, setForm]                   = useState({ ...empty, scheduledEndTime: settings.defaultScheduledTime || '14:00' });
+  const [form, setForm]                   = useState({ ...empty });
   const [errors, setErrors]               = useState<Record<string, string>>({});
   const [saveError, setSaveError]         = useState<string | null>(null);
   const [saving, setSaving]               = useState(false);
@@ -231,16 +229,9 @@ export default function EarlyDeparturePage() {
     })
     .sort((a, b) => b.date.localeCompare(a.date));
 
-  function getScheduledEndForDate(dateStr: string): string {
-    if (!dateStr) return '14:00';
-    const day = new Date(dateStr).getDay().toString();
-    return weekSchedule[day] || '14:00';
-  }
-
   function openAdd() {
     setEditing(null);
-    const today = getTodayStr();
-    setForm({ ...empty, scheduledEndTime: getScheduledEndForDate(today) });
+    setForm({ ...empty, date: getTodayStr() });
     setErrors({});
     setShowModal(true);
   }
@@ -256,10 +247,6 @@ export default function EarlyDeparturePage() {
     const e: Record<string, string> = {};
     if (!form.teacherId) e.teacherId = 'اختر المعلم';
     if (!form.date) e.date = 'التاريخ مطلوب';
-    if (!form.scheduledEndTime) e.scheduledEndTime = 'وقت الانصراف المقرر مطلوب';
-    if (!form.actualDepartureTime) e.actualDepartureTime = 'وقت الانصراف الفعلي مطلوب';
-    else if (form.actualDepartureTime >= form.scheduledEndTime)
-      e.actualDepartureTime = 'وقت الانصراف الفعلي يجب أن يكون قبل الوقت المقرر';
     return e;
   }
 
@@ -425,29 +412,9 @@ export default function EarlyDeparturePage() {
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">التاريخ</label>
               <input type="date" value={form.date}
-                onChange={e => setForm(f => ({ ...f, date: e.target.value, scheduledEndTime: getScheduledEndForDate(e.target.value) }))}
+                onChange={e => setForm(f => ({ ...f, date: e.target.value }))}
                 className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.date ? 'border-red-400' : 'border-slate-300'}`} />
               {errors.date && <p className="text-xs text-red-500 mt-1">{errors.date}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">وقت الانصراف المقرر</label>
-              <input type="time" value={form.scheduledEndTime}
-                onChange={e => setForm(f => ({ ...f, scheduledEndTime: e.target.value }))}
-                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.scheduledEndTime ? 'border-red-400' : 'border-slate-300'}`} />
-              {errors.scheduledEndTime && <p className="text-xs text-red-500 mt-1">{errors.scheduledEndTime}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">وقت الانصراف الفعلي</label>
-              <input type="time" value={form.actualDepartureTime}
-                onChange={e => setForm(f => ({ ...f, actualDepartureTime: e.target.value }))}
-                className={`w-full border rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 ${errors.actualDepartureTime ? 'border-red-400' : 'border-slate-300'}`} />
-              {errors.actualDepartureTime && <p className="text-xs text-red-500 mt-1">{errors.actualDepartureTime}</p>}
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">ملاحظات (اختياري)</label>
-              <textarea value={form.notes} rows={2}
-                onChange={e => setForm(f => ({ ...f, notes: e.target.value }))}
-                className="w-full border border-slate-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500" />
             </div>
             {saveError && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-3 text-sm text-red-700 break-words">
