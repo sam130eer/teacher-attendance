@@ -229,7 +229,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     setEarlyDepartures(prev => [...prev, record]);
     const { error } = await supabase.from('early_departures').insert({
       id: record.id, teacher_id: record.teacherId, date: record.date,
-      scheduled_end_time: record.scheduledEndTime, actual_departure_time: record.actualDepartureTime,
+      scheduled_end_time: record.scheduledEndTime || '00:00',
+      actual_departure_time: record.actualDepartureTime || '00:00',
       notes: record.notes, created_at: record.createdAt,
     });
     if (error) {
@@ -245,8 +246,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const u: Record<string, unknown> = {};
     if (e.teacherId           !== undefined) u.teacher_id           = e.teacherId;
     if (e.date                !== undefined) u.date                 = e.date;
-    if (e.scheduledEndTime    !== undefined) u.scheduled_end_time   = e.scheduledEndTime;
-    if (e.actualDepartureTime !== undefined) u.actual_departure_time = e.actualDepartureTime;
+    if (e.scheduledEndTime    !== undefined) u.scheduled_end_time   = e.scheduledEndTime    || '00:00';
+    if (e.actualDepartureTime !== undefined) u.actual_departure_time = e.actualDepartureTime || '00:00';
     if (e.notes               !== undefined) u.notes                = e.notes;
     const { error } = await supabase.from('early_departures').update(u).eq('id', id);
     if (error) {
