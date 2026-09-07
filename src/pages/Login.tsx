@@ -67,7 +67,7 @@ export default function Login({ onLogin }: Props) {
             />
           </div>
           {schoolName && (
-            <p style={{ color: '#fde68a', fontSize: '0.95rem', fontWeight: 600, margin: '0.35rem 0 0' }}>{schoolName}</p>
+            <p style={{ color: '#fde68a', fontSize: '1.33rem', fontWeight: 700, margin: '0.35rem 0 0' }}>{schoolName}</p>
           )}
         </div>
 

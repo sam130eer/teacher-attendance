@@ -23,7 +23,7 @@ export default function Navbar({ onMenuClick }: Props) {
       {/* School name + date — fills middle space */}
       <div className="flex-1 px-3 lg:px-0">
         <div className="lg:flex lg:items-center lg:gap-4">
-          <p className="text-sm font-bold text-indigo-700 leading-none">{settings.schoolName}</p>
+          <p className="text-xl font-bold text-indigo-700 leading-none">{settings.schoolName}</p>
           <span className="hidden lg:inline w-1 h-1 rounded-full bg-slate-300" />
           <p className="hidden lg:block text-xs text-slate-400">
             {new Date().toLocaleDateString('ar-SA', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
