@@ -13,7 +13,7 @@ function localDate(dateStr: string) {
 }
 
 function hijriDate(dateStr: string) {
-  try { return localDate(dateStr).toLocaleDateString('ar-SA-u-ca-islamic', { day: 'numeric', month: 'numeric', year: 'numeric' }); }
+  try { return localDate(dateStr).toLocaleDateString('ar-SA-u-ca-islamic-umalqura', { day: 'numeric', month: 'numeric', year: 'numeric' }); }
   catch { return dateStr; }
 }
 
@@ -23,12 +23,12 @@ function dayName(dateStr: string) {
 }
 
 function todayHijri() {
-  try { return new Date().toLocaleDateString('ar-SA-u-ca-islamic', { day: 'numeric', month: 'numeric', year: 'numeric' }); }
+  try { return new Date().toLocaleDateString('ar-SA-u-ca-islamic-umalqura', { day: 'numeric', month: 'numeric', year: 'numeric' }); }
   catch { return ''; }
 }
 
 function todayHijriYear() {
-  try { return new Date().toLocaleDateString('ar-SA-u-ca-islamic', { year: 'numeric' }); }
+  try { return new Date().toLocaleDateString('ar-SA-u-ca-islamic-umalqura', { year: 'numeric' }); }
   catch { return '1448'; }
 }
 
