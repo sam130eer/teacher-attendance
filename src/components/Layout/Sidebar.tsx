@@ -49,7 +49,7 @@ export default function Sidebar({ open, onClose, onLogout }: Props) {
             </button>
           </div>
           <div className="flex flex-col items-center pb-4 px-4 pt-2">
-            <div className="bg-white rounded-full p-1.5 shadow-lg mb-2" style={{ width: '90px', height: '90px', overflow: 'hidden' }}>
+            <div className="bg-white rounded-full p-1.5 shadow-lg mb-2" style={{ width: '108px', height: '108px', overflow: 'hidden' }}>
               <img
                 src="/hader-logo.png"
                 alt="حاضر"
@@ -57,7 +57,8 @@ export default function Sidebar({ open, onClose, onLogout }: Props) {
                 onError={e => { (e.currentTarget.parentElement as HTMLElement).style.display = 'none'; }}
               />
             </div>
-            <p className="text-sm text-indigo-200 font-medium">متابعة الانضباط</p>
+            <p className="text-base font-bold text-white">برنامج حاضر</p>
+            <p className="text-xs text-indigo-300 mt-0.5">متابعة الانضباط</p>
           </div>
         </div>
 
