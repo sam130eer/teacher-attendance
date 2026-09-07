@@ -169,7 +169,7 @@ export default function Dashboard() {
             </div>
             <div>
               {(() => {
-                const pct = teachers.length === 0 ? 100 : Math.max(0, Math.round(100 - (monthAbsences.length / (teachers.length * 22)) * 100));
+                const pct = teachers.length === 0 ? 100 : Math.max(0, Math.round((1 - (totalAbsDays / (teachers.length * 22))) * 100));
                 return <>
                   <p className="text-3xl font-extrabold text-slate-800">{pct}%</p>
                   <p className="text-xs text-slate-400 mt-0.5">من {teachers.length} معلم</p>
