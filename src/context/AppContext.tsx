@@ -281,7 +281,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     if (s.defaultScheduledTime !== undefined) u.default_scheduled_time = s.defaultScheduledTime;
     if (s.principalName        !== undefined) u.principal_name         = s.principalName;
     if (Object.keys(u).length > 0) {
-      supabase.from('app_settings').update(u).eq('id', 1)
+      supabase.from('app_settings').upsert({ id: 1, ...u }, { onConflict: 'id' })
         .then(({ error }) => { if (error) console.error(error); });
     }
   }, []);
