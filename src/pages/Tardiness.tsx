@@ -7,14 +7,29 @@ import AccountabilityModal from '../components/UI/AccountabilityModal';
 import type { Tardiness as TardinessType, Teacher } from '../types';
 import { formatDate, formatTime, calcTardinessMinutes, getTodayStr } from '../utils/helpers';
 
+function localDate(dateStr: string) {
+  const [y, m, d] = dateStr.split('-').map(Number);
+  return new Date(y, m - 1, d);
+}
+
 function hijriDate(dateStr: string) {
-  try { return new Date(dateStr).toLocaleDateString('ar-SA-u-ca-islamic', { day: 'numeric', month: 'numeric', year: 'numeric' }); }
+  try { return localDate(dateStr).toLocaleDateString('ar-SA-u-ca-islamic', { day: 'numeric', month: 'numeric', year: 'numeric' }); }
   catch { return dateStr; }
 }
 
 function dayName(dateStr: string) {
-  try { return new Date(dateStr).toLocaleDateString('ar-SA', { weekday: 'long' }); }
+  try { return localDate(dateStr).toLocaleDateString('ar-SA', { weekday: 'long' }); }
   catch { return ''; }
+}
+
+function todayHijri() {
+  try { return new Date().toLocaleDateString('ar-SA-u-ca-islamic', { day: 'numeric', month: 'numeric', year: 'numeric' }); }
+  catch { return ''; }
+}
+
+function todayHijriYear() {
+  try { return new Date().toLocaleDateString('ar-SA-u-ca-islamic', { year: 'numeric' }); }
+  catch { return '1448'; }
 }
 
 function fmtTime12(t: string) {
@@ -88,7 +103,7 @@ function buildForm18TardinessHTML(
   </div>
   <div class="ref">
     <div>الرقم :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
-    <div>التاريخ : ${hijriDate(new Date().toISOString().split('T')[0])}هـ</div>
+    <div>التاريخ : ${todayHijri()}هـ</div>
     <div>المشفوعات :&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</div>
     <div>مدرسة : ${schoolName}</div>
   </div>
@@ -137,7 +152,7 @@ function buildForm18TardinessHTML(
 <div class="req">عليه نأمل توضيح أسباب ذلك مع إرفاق ما يؤيد عذركم ،،، ولكم تحياتي</div>
 
 <div class="sig-row">
-  <div class="sig-item">التاريخ : ${hijriDate(new Date().toISOString().split('T')[0])}هـ</div>
+  <div class="sig-item">التاريخ : ${todayHijri()}هـ</div>
   <div class="sig-item">التوقيع <span class="sig-line"></span></div>
   <div class="sig-item">مدير المدرسة : <strong>${principalName || '________________'}</strong></div>
 </div>
@@ -154,7 +169,7 @@ function buildForm18TardinessHTML(
 <div class="sig-row" style="justify-content:space-between;margin-top:8px;">
   <div class="sig-item">الاسم : <strong>${teacher.name}</strong></div>
   <div class="sig-item">التوقيع <span class="sig-line"></span></div>
-  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;1448هـ</div>
+  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;${todayHijriYear()}هـ</div>
 </div>
 
 <hr class="divider">
@@ -166,7 +181,7 @@ function buildForm18TardinessHTML(
 </div>
 
 <div class="sig-row">
-  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;1448هـ</div>
+  <div class="sig-item">التاريخ&nbsp;&nbsp;/&nbsp;&nbsp;/&nbsp;&nbsp;${todayHijriYear()}هـ</div>
   <div class="sig-item">التوقيع <span class="sig-line"></span></div>
   <div class="sig-item">مدير المدرسة : <strong>${principalName || '________________'}</strong></div>
 </div>
