@@ -8,11 +8,12 @@ import { ABSENCE_COLORS, ABSENCE_TYPES } from '../types';
 export default function Dashboard() {
   const { teachers, absences, tardiness, earlyDepartures } = useApp();
   const today = getTodayStr();
+  const yesterday = new Date(new Date().setDate(new Date().getDate() - 1)).toISOString().split('T')[0];
   const { from, to } = getCurrentMonthRange();
 
   const todayAbsences  = absences.filter(a => a.startDate <= today && a.endDate >= today);
   const todayTardiness = tardiness.filter(t => t.date === today);
-  const todayEarlyDep  = earlyDepartures.filter(e => e.date === today);
+  const todayEarlyDep  = earlyDepartures.filter(e => e.date === yesterday);
 
   const monthAbsences  = absences.filter(a => a.startDate >= from && a.startDate <= to);
   const monthTardiness = tardiness.filter(t => t.date >= from && t.date <= to);
@@ -77,7 +78,7 @@ export default function Dashboard() {
             <div className="bg-white/15 rounded-xl px-5 py-3 flex items-center gap-3">
               <LogIn size={20} className="text-rose-300 shrink-0" />
               <div>
-                <p className="text-xs text-indigo-200">انصراف مبكر</p>
+                <p className="text-xs text-indigo-200">انصراف مبكر أمس</p>
                 <p className="font-extrabold text-3xl leading-none">{todayEarlyDep.length}</p>
               </div>
             </div>
